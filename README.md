@@ -1,15 +1,22 @@
 # Teddy bear – ESP32, LED and vibration motor
 
-Phone → WiFi → ESP32 → buzz / light. No app store: the ESP32 serves the
-control page itself, so any phone browser works (iOS and Android).
+Phone → ESP32 → buzz / light. Two flavours, same buttons:
+
+- **Bluetooth (BLE)** – `teddy_bear_ble/` + `app-ble.html`. Phone keeps its
+  normal WiFi/internet. Needs a browser with Web Bluetooth (see below).
+- **WiFi** – `teddy_bear/` + `app.html`. The ESP32 serves the page itself, so
+  it works in *any* browser, but the phone has to join the bear's hotspot.
 
 ## Files
 
 | File | What it is |
 |---|---|
-| `circuit.svg` | Wiring diagram (open in a browser) |
-| `teddy_bear/teddy_bear.ino` | ESP32 sketch (Arduino IDE). The control page is embedded in it. |
-| `app.html` | Same control page as a standalone file, for previewing on a laptop or using from a laptop with the bear's IP |
+| `circuit.svg` | Full wiring diagram, LED + motor (open in a browser) |
+| `circuit-led.svg` | LED only, for getting started before the transistor arrives |
+| `teddy_bear_ble/teddy_bear_ble.ino` | **Bluetooth** ESP32 sketch |
+| `app-ble.html` | **Bluetooth** control page (Web Bluetooth) |
+| `teddy_bear/teddy_bear.ino` | **WiFi** ESP32 sketch, control page embedded in it |
+| `app.html` | WiFi control page as a standalone file |
 
 ## Parts
 
@@ -81,7 +88,7 @@ short bursts, but it will be a lot stronger).
   works without the motor. (`LED_NO_RESISTOR` in the sketch is there if you
   ever run out of 220 Ω resistors; leave it `false`.)
 
-## Flashing
+## Flashing (either sketch)
 
 1. Arduino IDE 2.x → *File → Preferences → Additional boards manager URLs*, add
    `https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json`
@@ -89,9 +96,36 @@ short bursts, but it will be a lot stronger).
 3. Open `teddy_bear/teddy_bear.ino`, pick *ESP32 Dev Module* and your USB port.
 4. Upload. If it hangs at "Connecting…", hold the **BOOT** button on the board
    until upload starts.
-5. *Tools → Serial Monitor* at 115200 baud shows the address to open.
+5. *Tools → Serial Monitor* at 115200 baud shows what it's doing.
+6. BLE sketch only: if the upload says the sketch is too big, set
+   *Tools → Partition Scheme → Huge APP*.
 
-## Using it
+## Using it – Bluetooth
+
+1. Flash `teddy_bear_ble/teddy_bear_ble.ino`. The bear advertises as **Teddy**.
+2. Open `app-ble.html` in a browser that supports Web Bluetooth, **from an
+   https page or localhost** (browsers refuse Bluetooth on plain file/http pages):
+   - **Android:** Chrome.
+   - **Mac / Windows laptop:** Chrome or Edge. Quickest way to try it: in this
+     folder run `python3 -m http.server 8000` and open http://localhost:8000/app-ble.html
+   - **iPhone:** Safari has no Web Bluetooth. Install the free **Bluefy** app
+     (a browser with Bluetooth) and open the page in that.
+   - To use it on the phone the page needs hosting somewhere with https
+     (GitHub Pages, Netlify…). Nothing in it is secret, so a public host is fine.
+3. Tap **Connect to bear**, pick *Teddy* in the list. Then hold the paw / tap the light.
+
+No pairing needed; the bear accepts one phone at a time and stops the motor the
+moment the connection drops.
+
+### BLE service (for building your own app later)
+
+| UUID | Characteristic | Does |
+|---|---|---|
+| `0e7a1000-7edd-4bea-a000-5eed12345678` | service | |
+| `0e7a1001-…` | motor | write 1 = buzz, 0 = stop. Keep writing 1 every ≤1 s while holding |
+| `0e7a1002-…` | led | write 1/0, read, notify on change |
+
+## Using it – WiFi
 
 **Hotspot mode (default, nothing to configure):**
 the bear creates a WiFi network called `TeddyBear`, password `cuddles123`.
@@ -107,11 +141,11 @@ On the phone, *Share → Add to Home Screen* gives you a full-screen app icon.
 - **Hold the paw** → motor runs while held, stops on release.
 - **Light** → toggles the LED.
 
-### Safety behaviour
+### Safety behaviour (both versions)
 
 While the paw is held the page pings the bear every 400 ms. If the bear hears
-nothing for 1.2 s (phone locked, WiFi dropped, app closed) it stops the motor
-by itself, so it can never get stuck buzzing.
+nothing for 1.2 s (phone locked, connection dropped, app closed) it stops the
+motor by itself, so it can never get stuck buzzing.
 
 ### Simple HTTP API
 
@@ -129,4 +163,6 @@ Anything that can make an HTTP request can drive the bear (Shortcuts, curl…):
 - Intensity: switch `digitalWrite` on the motor to `ledcWrite` PWM and add a slider.
 - Several motors/LEDs: one transistor stage per motor, one GPIO each.
 - Patterns: heartbeat buzz, breathing LED, done in `loop()` with `millis()`.
+- A proper phone app: the BLE service table above is all a Swift (CoreBluetooth)
+  or Flutter (flutter_blue_plus) app needs.
 - Battery: a board with a built-in LiPo charger (e.g. ESP32 "Lolin32 Lite", TTGO T-Energy).

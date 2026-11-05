@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 330" width="560" height="330" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="560" height="330" fill="#ffffff"/>
+  <text x="20" y="30" font-size="18" font-weight="bold" fill="#222">LED only – ESP32</text>
+
+  <!-- ESP32 -->
+  <rect x="40" y="60" width="160" height="200" rx="8" fill="#f3f4f6" stroke="#333" stroke-width="2"/>
+  <text x="120" y="90" text-anchor="middle" font-weight="bold" fill="#222">ESP32</text>
+  <text x="120" y="108" text-anchor="middle" fill="#555">DevKit board</text>
+  <text x="120" y="245" text-anchor="middle" fill="#555">USB 5V in</text>
+  <g stroke="#333" stroke-width="2">
+    <line x1="200" y1="150" x2="230" y2="150"/>
+    <line x1="200" y1="220" x2="230" y2="220"/>
+  </g>
+  <text x="192" y="145" text-anchor="end" fill="#222" font-weight="bold">GPIO 25</text>
+  <text x="192" y="215" text-anchor="end" fill="#222" font-weight="bold">GND</text>
+
+  <!-- LED branch -->
+  <line x1="230" y1="150" x2="270" y2="150" stroke="#333" stroke-width="2"/>
+  <rect x="270" y="142" width="70" height="16" fill="#fff" stroke="#333" stroke-width="2"/>
+  <text x="305" y="135" text-anchor="middle" fill="#222">R1  220 Ω</text>
+  <line x1="340" y1="150" x2="380" y2="150" stroke="#333" stroke-width="2"/>
+  <polygon points="380,138 380,162 404,150" fill="#fff" stroke="#333" stroke-width="2"/>
+  <line x1="404" y1="138" x2="404" y2="162" stroke="#333" stroke-width="3"/>
+  <g stroke="#d97706" stroke-width="1.5">
+    <line x1="396" y1="136" x2="408" y2="124"/><polygon points="408,124 402,126 406,130" fill="#d97706"/>
+    <line x1="404" y1="140" x2="416" y2="128"/><polygon points="416,128 410,130 414,134" fill="#d97706"/>
+  </g>
+  <line x1="404" y1="150" x2="450" y2="150" stroke="#333" stroke-width="2"/>
+  <line x1="450" y1="150" x2="450" y2="220" stroke="#333" stroke-width="2"/>
+  <line x1="230" y1="220" x2="450" y2="220" stroke="#333" stroke-width="2"/>
+  <text x="392" y="182" text-anchor="middle" fill="#222">LED</text>
+  <text x="384" y="197" text-anchor="end" fill="#555">+ long leg</text>
+  <text x="458" y="197" fill="#555">– short leg</text>
+  <!-- ground symbol -->
+  <g stroke="#333" stroke-width="2">
+    <line x1="450" y1="220" x2="450" y2="235"/>
+    <line x1="435" y1="235" x2="465" y2="235"/>
+    <line x1="440" y1="241" x2="460" y2="241"/>
+    <line x1="445" y1="247" x2="455" y2="247"/>
+  </g>
+
+  <text x="20" y="290" fill="#444">GPIO 25 → 220 Ω → LED long leg.   LED short leg → GND.   Any resistor 150–470 Ω works.</text>
+  <text x="20" y="310" fill="#444">Any colour LED. No parts at all? Most DevKits have an LED on GPIO 2 already.</text>
+</svg>
