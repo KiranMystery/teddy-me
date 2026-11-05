@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#2b1d14">
+<title>Teddy</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: #2b1d14; color: #fff4e6;
+    font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 28px; padding: 24px 16px; user-select: none; -webkit-user-select: none;
+    -webkit-touch-callout: none; touch-action: manipulation;
+  }
+  h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: .5px; }
+  #status { font-size: 14px; opacity: .75; min-height: 1.2em; }
+  #status.bad { color: #ff9b8a; opacity: 1; }
+  #addr { display: none; gap: 8px; align-items: center; font-size: 14px; }
+  #addr input { font-size: 16px; padding: 8px 10px; border-radius: 8px; border: 1px solid #7a5a3e; background: #3b2a1e; color: #fff; width: 160px; }
+  .buzz {
+    width: 220px; height: 220px; border-radius: 50%; border: none; cursor: pointer;
+    background: radial-gradient(circle at 35% 30%, #d9985a, #a2642f 70%);
+    box-shadow: 0 12px 30px rgba(0,0,0,.45), inset 0 -6px 14px rgba(0,0,0,.25);
+    color: #fff; font-size: 20px; font-weight: 700; line-height: 1.3;
+    touch-action: none; transition: transform .08s, box-shadow .08s, background .08s;
+  }
+  .buzz .big { display: block; font-size: 56px; }
+  .buzz.on {
+    transform: scale(.94);
+    background: radial-gradient(circle at 35% 30%, #ffb46e, #d47a2a 70%);
+    box-shadow: 0 4px 10px rgba(0,0,0,.45), 0 0 40px rgba(255,170,90,.6);
+    animation: wobble .12s infinite;
+  }
+  @keyframes wobble { 0%{transform:scale(.94) rotate(-2deg)} 50%{transform:scale(.94) rotate(2deg)} 100%{transform:scale(.94) rotate(-2deg)} }
+  .light {
+    width: 220px; padding: 18px 0; border-radius: 999px; border: 2px solid #7a5a3e; cursor: pointer;
+    background: #3b2a1e; color: #e8d5c0; font-size: 20px; font-weight: 700;
+    transition: background .15s, color .15s, box-shadow .15s;
+  }
+  .light.on { background: #ffd978; color: #2b1d14; border-color: #ffd978; box-shadow: 0 0 36px rgba(255,217,120,.7); }
+  .hint { font-size: 13px; opacity: .6; text-align: center; max-width: 260px; }
+</style>
+</head>
+<body oncontextmenu="return false">
+  <h1>🧸 Teddy</h1>
+  <div id="status">connecting…</div>
+  <div id="addr"><label>Bear address <input id="ip" placeholder="192.168.4.1"></label></div>
+
+  <button class="buzz" id="buzz"><span class="big">🐾</span>hold to<br>buzz</button>
+  <button class="light" id="light">💡 Light: off</button>
+
+  <p class="hint">Press and hold the paw to make the bear vibrate. Tap the light to toggle it.</p>
+
+<script>
+  // When this page is served by the bear itself, talk to the same address.
+  // When opened as a plain file on a computer, ask for the bear's IP instead.
+  const servedByBear = location.protocol.startsWith('http');
+  const addrBox = document.getElementById('addr');
+  const ipInput = document.getElementById('ip');
+  if (!servedByBear) {
+    addrBox.style.display = 'flex';
+    ipInput.value = localStorage.getItem('teddyIp') || '192.168.4.1';
+    ipInput.addEventListener('change', () => { localStorage.setItem('teddyIp', ipInput.value.trim()); api('/state'); });
+  }
+  const base = () => servedByBear ? '' : 'http://' + ipInput.value.trim();
+
+  const statusEl = document.getElementById('status');
+  const buzz = document.getElementById('buzz');
+  const light = document.getElementById('light');
+
+  function render(s) {
+    light.classList.toggle('on', !!s.led);
+    light.textContent = '💡 Light: ' + (s.led ? 'on' : 'off');
+  }
+  function setStatus(ok) {
+    statusEl.textContent = ok ? 'connected to bear' : "can't reach the bear";
+    statusEl.classList.toggle('bad', !ok);
+  }
+  async function api(path) {
+    try {
+      const r = await fetch(base() + path, { cache: 'no-store' });
+      render(await r.json());
+      setStatus(true);
+    } catch (e) { setStatus(false); }
+  }
+
+  // --- Hold-to-buzz ---
+  // While held we re-send "on" every 400 ms; the bear switches the motor off
+  // by itself if it stops hearing from us, so a dropped "off" can't leave it buzzing.
+  let holdTimer = null;
+  function startBuzz(e) {
+    e.preventDefault();
+    if (holdTimer) return;
+    try { buzz.setPointerCapture(e.pointerId); } catch (_) {}
+    buzz.classList.add('on');
+    api('/motor/on');
+    holdTimer = setInterval(() => api('/motor/on'), 400);
+  }
+  function stopBuzz() {
+    if (!holdTimer) return;
+    clearInterval(holdTimer); holdTimer = null;
+    buzz.classList.remove('on');
+    api('/motor/off');
+  }
+  buzz.addEventListener('pointerdown', startBuzz);
+  buzz.addEventListener('pointerup', stopBuzz);
+  buzz.addEventListener('pointercancel', stopBuzz);
+  window.addEventListener('blur', stopBuzz);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) stopBuzz(); });
+
+  // --- Light toggle ---
+  light.addEventListener('click', () => api('/led/toggle'));
+
+  api('/state');
+</script>
+</body>
+</html>
