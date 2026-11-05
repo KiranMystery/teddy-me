@@ -22,7 +22,7 @@ control page itself, so any phone browser works (iOS and Android).
 | 1 | NPN transistor | 2N2222, BC337, S8050, PN2222 … or a 2N7000 MOSFET |
 | 1 | 1 kΩ resistor | transistor base |
 | 1 | Diode 1N4148 (or 1N4001/4007) | flyback, across the motor |
-| 1 | 100 µF capacitor (optional) | across 3V3/GND, stops brownout resets when the motor starts |
+| 1 | 10–100 µF capacitor (optional) | across 3V3/GND, stops brownout resets when the motor starts. Bigger is better; 10 µF is fine to start. If electrolytic, + leg to 3V3 |
 
 ## Wiring
 

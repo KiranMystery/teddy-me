@@ -84,7 +84,7 @@
   <line x1="718" y1="255" x2="742" y2="255" stroke="#333" stroke-width="3"/>
   <line x1="730" y1="255" x2="730" y2="400" stroke="#333" stroke-width="2"/>
   <circle cx="730" cy="110" r="3.5" fill="#b91c1c"/>
-  <text x="748" y="245" fill="#222">C1 100 µF</text>
+  <text x="748" y="245" fill="#222">C1 10–100 µF</text>
   <text x="748" y="260" fill="#555">(optional, + up)</text>
 
   <!-- ===== LED BRANCH (GPIO 25) ===== -->
