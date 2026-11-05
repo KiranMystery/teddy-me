@@ -50,6 +50,7 @@ unsigned long motorLastPing = 0;
 void setLed(bool on) {
   ledOn = on;
   digitalWrite(LED_PIN, on ? HIGH : LOW);
+  Serial.printf("LED %s (GPIO %d)\n", on ? "ON" : "off", LED_PIN);
   if (ledChr) {
     uint8_t v = on ? 1 : 0;
     ledChr->setValue(&v, 1);
@@ -58,6 +59,7 @@ void setLed(bool on) {
 }
 
 void setMotor(bool on) {
+  if (on != motorOn) Serial.printf("motor %s (GPIO %d)\n", on ? "ON" : "off", MOTOR_PIN);
   motorOn = on;
   digitalWrite(MOTOR_PIN, on ? HIGH : LOW);
 }

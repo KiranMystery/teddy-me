@@ -154,9 +154,11 @@
     writeChain = writeChain.then(async () => {
       try {
         const data = new Uint8Array([byte]);
-        if (chr.writeValueWithoutResponse) await chr.writeValueWithoutResponse(data);
+        // Only use the fast "no response" write where the characteristic allows it
+        if (chr.properties.writeWithoutResponse && chr.writeValueWithoutResponse) await chr.writeValueWithoutResponse(data);
+        else if (chr.writeValueWithResponse) await chr.writeValueWithResponse(data);
         else await chr.writeValue(data);
-      } catch (e) { console.warn('write failed', e); }
+      } catch (e) { console.warn('write failed', e); setStatus('write failed: ' + e.message, true); }
     });
   }
 
