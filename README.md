@@ -90,6 +90,12 @@ short bursts, but it will be a lot stronger).
 
 ## Flashing (either sketch)
 
+**From the terminal** (what `flash.sh` does): install arduino-cli, the esp32 core,
+and on Apple Silicon also Rosetta (arduino-cli's ctags helper is Intel-only).
+Then `./flash.sh ble` or `./flash.sh wifi`, add `monitor` to watch the serial output.
+
+**From the Arduino IDE:**
+
 1. Arduino IDE 2.x → *File → Preferences → Additional boards manager URLs*, add
    `https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json`
 2. *Tools → Board → Boards Manager*, install **esp32 by Espressif Systems**.
