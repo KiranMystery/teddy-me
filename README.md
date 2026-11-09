@@ -22,7 +22,7 @@ Phone → ESP32 → buzz / light. Two flavours, same buttons:
 
 | Qty | Part | Notes |
 |---|---|---|
-| 1 | ESP32 dev board | any common "ESP32 DevKit" / WROOM board |
+| 1 | ESP32 dev board | any common "ESP32 DevKit" / WROOM board, 30-pin or 38-pin (see "Which pin is which?") |
 | 1 | LED | any colour |
 | 1 | 220 Ω resistor | LED current limit (anything 150–470 Ω is fine) |
 | 1 | Coin / pancake vibration motor (3 V) | the small flat type |
@@ -70,6 +70,31 @@ easiest. If the ESP32 reboots when the motor kicks in, add C1 or move the
 motor's + wire from 3V3 to the board's 5V/VIN pin (coin motors tolerate it for
 short bursts, but it will be a lot stronger).
 
+### Which pin is which?
+
+Pin labels only help if they match your board. The 30-pin "DevKit V1" and the
+38-pin "DevKitC" have different layouts, and a screw-terminal adapter printed
+for one is wrong for the other (this is what held up the motor on the bench:
+a 38-pin board in a 30-pin adapter). The reliable method: get the LED working
+on GPIO 25 first, then count from that pin. Hold the board USB socket down,
+antenna up; GPIO 25 is the **9th pin from the antenna end** on both boards,
+and in that same column:
+
+| 30-pin DevKit V1 (15 per side) | 38-pin DevKitC (19 per side) |
+|---|---|
+| 1 = **3V3** | 1 = **3V3** |
+| 9 = **GPIO 25** | 9 = **GPIO 25** |
+| 10 = **GPIO 26** | 10 = **GPIO 26** |
+| 14 = **GND** | 14 = **GND** |
+| 5V is **VIN**, top of the *other* column | 19 = **5V** (bottom, by the USB socket) |
+
+On the 38-pin board never use pins 16–18 of that column (D2, D3, CMD) or the
+last three of the other column (D1, D0, CLK): they're the flash chip.
+
+Without a meter, your LED is a probe: short leg on GND, touch the resistor end
+to a pin. Steady light = 3V3 or 5V (5V is brighter), dark = GPIO or GND. Don't
+probe EN, it resets the board.
+
 ## Wiring the motor, step by step
 
 Unplug the USB first. Everything below is the right-hand half of `circuit.svg`.
@@ -102,9 +127,18 @@ Unplug the USB first. Everything below is the right-hand half of `circuit.svg`.
 8. Plug the USB back in. The boot "hello" gives one short buzz and blink.
    Then connect from the page and hold the paw.
 
+If the motor does nothing: pull its wire off the C leg and touch it straight
+to GND. Spins → the transistor side is wrong (PNP by mistake? C/E swapped?
+10 kΩ instead of 1 kΩ?). Doesn't spin → either the hair-thin motor leads
+aren't making contact (scrape the enamel off and twist them onto solid jumper
+wire), or you're not on the pin you think (see "Which pin is which?" above).
+The serial monitor settles the software side: every press should print
+`motor ON (GPIO 26)` and release `motor off (GPIO 26)`.
+
 If the ESP32 reboots when the motor kicks in (you'll see it disconnect from the
-page), the capacitor isn't enough: use a bigger one, or move the motor's red
-wire from 3V3 to the board's **VIN / 5V** pin.
+page, and the serial log says "Brownout detector was triggered"), the capacitor
+isn't enough: use a bigger one, or move the motor's red wire from 3V3 to the
+board's **VIN / 5V** pin.
 
 ## No transistor or capacitor?
 
