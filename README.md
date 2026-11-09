@@ -70,6 +70,42 @@ easiest. If the ESP32 reboots when the motor kicks in, add C1 or move the
 motor's + wire from 3V3 to the board's 5V/VIN pin (coin motors tolerate it for
 short bursts, but it will be a lot stronger).
 
+## Wiring the motor, step by step
+
+Unplug the USB first. Everything below is the right-hand half of `circuit.svg`.
+
+1. **Pick a transistor** from the kit. Any of these NPN types: **2N2222 / PN2222,
+   S8050, BC337** (best, 500 mA+), or **2N3904 / BC547** (fine for one coin
+   motor, don't add a second). A **2N7000** MOSFET also works: gate = base,
+   drain = collector, source = emitter, no base resistor needed.
+2. **Find its legs.** Flat face towards you, legs pointing down, left to right:
+
+   | Part | Legs |
+   |---|---|
+   | 2N2222 / PN2222 / 2N3904 / S8050 | E  B  C |
+   | BC337 / BC547 | C  B  E |
+   | 2N7000 | S  G  D |
+
+   If you get C and E swapped nothing breaks, the motor just barely twitches:
+   turn the transistor round.
+3. **Base:** 1 kΩ resistor from the **26** terminal to the transistor's **B** leg.
+4. **Emitter:** **E** leg straight to **GND**.
+5. **Motor:** red wire to **3V3**, the other wire (blue/black) to the **C** leg.
+   Direction doesn't matter for a vibration motor. The motor's wires are hair
+   thin, so twist each onto a jumper wire, or clamp them in the screw terminals.
+6. **Flyback diode** across the motor: the **striped** end to the 3V3 side,
+   plain end to the C-leg side. Any 1N4148 / 1N4001-4007. No diode in the kit?
+   A spare **LED** does the job: long leg to the C side, short leg to 3V3.
+7. **Capacitor** (100 µF or whatever is biggest in the kit, 10 µF at a pinch)
+   between **3V3** and **GND**, as near the ESP32 as you can. Electrolytics
+   have a polarity: long leg to 3V3, the leg beside the stripe to GND.
+8. Plug the USB back in. The boot "hello" gives one short buzz and blink.
+   Then connect from the page and hold the paw.
+
+If the ESP32 reboots when the motor kicks in (you'll see it disconnect from the
+page), the capacitor isn't enough: use a bigger one, or move the motor's red
+wire from 3V3 to the board's **VIN / 5V** pin.
+
 ## No transistor or capacitor?
 
 - **C1 is optional.** Leave it out.
