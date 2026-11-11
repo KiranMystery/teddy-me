@@ -12,12 +12,13 @@
      Bluetooth app (app-ble.html) controls the bear directly in this mode.
 
   2. LINK mode (WiFi + MQTT).  Joins the saved WiFi and an MQTT broker.
-     Every bear with the same pair code listens on  teddy/<pair>/touch
-     and reacts to messages that come from *another* bear (or from the
-     app acting as that bear). The linked app (app-link.html) publishes:
-        {"from":"<myBearId>","motor":1}   while the paw is held (every 400 ms)
-        {"from":"<myBearId>","motor":0}   on release
-        {"from":"<myBearId>","led":1}     0 off, 1 slow pulse, 2 steady
+     Every bear with the same pair code listens on  teddy/<pair>/touch.
+     A message with "to" is for that one bear; a message without "to" is
+     for every bear except the sender (bear-to-bear, e.g. a paw sensor).
+     The linked app (app-link.html) publishes, for any bear it shows:
+        {"from":"app","to":"<bearId>","motor":1}   while the paw is held (every 400 ms)
+        {"from":"app","to":"<bearId>","motor":0}   on release
+        {"from":"app","to":"<bearId>","led":1}     0 off, 1 slow pulse, 2 steady
      Each bear publishes its own state (retained) on teddy/<pair>/state/<id>
      and listens for  teddy/<pair>/cmd/<id>  with {"cmd":"setup"} to forget
      WiFi and go back to SETUP mode.
@@ -285,7 +286,9 @@ void onMqtt(char* topic, byte* payload, unsigned int len) {
 
   if (t == topicTouch) {
     String from = jsonStr(msg, "from");
-    if (from == bearId) return;                 // my own touch, ignore
+    String to   = jsonStr(msg, "to");
+    if (to.length() > 0) { if (to != bearId) return; }   // addressed to another bear
+    else if (from == bearId) return;                     // broadcast from myself, ignore
     int m = jsonInt(msg, "motor", -1);
     int l = jsonInt(msg, "led", -1);
     if (m >= 0) motorPing(m != 0);

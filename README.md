@@ -19,7 +19,7 @@ Phone → ESP32 → buzz / light. Two flavours, same buttons:
 | `app.html` | WiFi control page as a standalone file |
 | `teddy_link/teddy_link.ino` | **Linked bears** sketch: Bluetooth for setup, WiFi + MQTT to link two bears |
 | `setup.html` | Teaches a bear your WiFi and a pair code, over Bluetooth |
-| `app-link.html` | Linked control page: hold the paw, the *other* bear buzzes |
+| `app-link.html` | Linked control page: a paw and light for every bear on your pair code, yours included |
 
 ## Parts
 
@@ -234,9 +234,10 @@ leave the room, so `teddy_link` works like a commercial IoT gadget:
    connects, then one buzz) and connects to an MQTT broker. Do the same setup
    on the second bear with the **same pair code**.
 3. Open `app-link.html` on any phone browser, including iPhone Safari, no
-   Bluetooth needed. Enter the pair code, pick which bear is yours, and hold
-   the paw. The other bear buzzes while you hold, and stops 1.2 s after you
-   let go even if your phone dies mid-cuddle.
+   Bluetooth needed. Enter the pair code and every bear on it appears as a
+   card, yours first, each with its own paw and light. Hold a paw and that
+   bear buzzes while you hold, and stops 1.2 s after you let go even if your
+   phone dies mid-cuddle. Yes, you can buzz your own bear too.
 
 While in setup mode the bear still accepts the plain Bluetooth app, so
 `app-ble.html` keeps working for direct control.
@@ -255,7 +256,7 @@ knows the pair code can poke your bear, so the setup page generates a random
 
 | Topic | Who | Payload |
 |---|---|---|
-| `teddy/<pair>/touch` | app or bear → everyone | `{"from":"<id>","motor":1}` every 400 ms while held, `{"from":"<id>","motor":0}` on release, `{"from":"<id>","led":1}` (0 off, 1 pulse, 2 steady). A bear ignores messages whose `from` is itself. |
+| `teddy/<pair>/touch` | app or bear → bears | `{"from":"app","to":"<id>","motor":1}` every 400 ms while held, `…"motor":0}` on release, `…"led":1}` (0 off, 1 pulse, 2 steady). With `to`, only that bear reacts. Without `to` (bear-to-bear, e.g. a future paw sensor) every bear except `from` reacts. |
 | `teddy/<pair>/state/<id>` | bear → app, retained | `{"id":"<id>","online":1,"led":1}`; the broker sends `online:0` if the bear drops off |
 | `teddy/<pair>/cmd/<id>` | app → one bear | `{"cmd":"setup"}` forget WiFi and reboot into Bluetooth setup; `{"cmd":"ping"}` re-publish state |
 

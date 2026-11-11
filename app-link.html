@@ -11,24 +11,24 @@
   html, body { height:100% }
   body { margin:0; padding:16px; background:var(--bg); color:var(--ink); font:16px/1.4 system-ui,-apple-system,sans-serif; -webkit-user-select:none; user-select:none; touch-action:manipulation }
   main { max-width:420px; margin:0 auto; display:grid; gap:14px }
-  h1 { margin:8px 0 0; font-size:22px } p { margin:0; color:var(--muted) }
+  h1 { margin:8px 0 0; font-size:22px } h2 { margin:0; font-size:17px; display:flex; align-items:center; gap:8px } p { margin:0; color:var(--muted) }
   .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; display:grid; gap:12px }
   label { display:grid; gap:4px; font-size:14px; color:var(--muted) }
-  input, select { font:inherit; padding:12px; border:1px solid var(--line); border-radius:10px; background:transparent; color:var(--ink) }
+  input { font:inherit; padding:12px; border:1px solid var(--line); border-radius:10px; background:transparent; color:var(--ink) }
   button { font:inherit; font-weight:600; padding:14px; border:0; border-radius:12px; background:var(--accent); color:#fff; cursor:pointer }
-  button.secondary { background:transparent; color:var(--ink); border:1px solid var(--line) }
+  button.secondary { background:transparent; color:var(--ink); border:1px solid var(--line); font-weight:500; padding:8px 12px; font-size:14px }
   #status { font-size:14px } #status.ok{color:var(--ok)} #status.bad{color:var(--bad)}
-  .bears { display:grid; gap:8px }
-  .bear { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--line); border-radius:12px }
-  .dot { width:10px; height:10px; border-radius:50%; background:#bbb } .dot.on { background:var(--ok) }
-  .bear .tag { margin-left:auto; font-size:12px; color:var(--muted) }
-  #paw { height:150px; font-size:20px; border-radius:24px; background:var(--accent); transition:transform .08s, background .08s; -webkit-touch-callout:none }
-  #paw.down { transform:scale(.96); background:var(--accent2) }
-  #paw:disabled { background:#bbb }
+  .dot { width:10px; height:10px; border-radius:50%; background:#bbb; flex:none } .dot.on { background:var(--ok) }
+  .tag { font-size:12px; color:var(--muted); font-weight:400; margin-left:auto }
+  .paw { height:130px; font-size:20px; border-radius:24px; background:var(--accent); transition:transform .08s, background .08s; -webkit-touch-callout:none }
+  .paw.down { transform:scale(.96); background:var(--accent2) }
+  .paw:disabled { background:#bbb }
   .switch { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border:1px solid var(--line); border-radius:12px }
-  .toggle { width:52px; height:30px; border-radius:15px; background:#bbb; position:relative; transition:background .15s }
+  .toggle { width:52px; height:30px; border-radius:15px; background:#bbb; position:relative; transition:background .15s; cursor:pointer }
   .toggle::after { content:""; position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%; background:#fff; transition:left .15s }
   .toggle.on { background:var(--ok) } .toggle.on::after { left:25px }
+  .mode { display:flex; gap:6px } .mode button { flex:1; padding:8px; font-size:13px } .mode button.sel { background:var(--ink); color:var(--bg); border-color:var(--ink) }
+  .bear.offline { opacity:.55 }
   code { background:rgba(127,127,127,.15); padding:2px 6px; border-radius:6px }
   details summary { cursor:pointer; color:var(--muted); font-size:14px }
 </style>
@@ -36,29 +36,18 @@
 <body>
 <main>
   <h1>Teddy link</h1>
-  <p>Hold the paw and the <b>other</b> bear buzzes. The light switches the other bear's light.</p>
+  <p>Every bear with your pair code shows up here. Hold a paw to buzz that bear, flip its light. Yours included.</p>
 
   <div class="card">
     <label>Pair code <input id="pair" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
-    <div class="bears" id="bears"><p>No bears seen yet.</p></div>
-    <label>Which bear is mine?
-      <select id="me"><option value="">(pick one)</option></select>
-    </label>
     <div id="status">Not connected.</div>
   </div>
 
-  <div class="card">
-    <button id="paw" disabled>Hold to send a cuddle</button>
-    <div class="switch">
-      <span>Other bear's light</span>
-      <div class="toggle" id="light" role="switch" aria-checked="false"></div>
-    </div>
-  </div>
+  <div id="bears"><div class="card"><p>No bears seen yet. A bear must be on WiFi with this pair code.</p></div></div>
 
   <details class="card">
     <summary>Advanced</summary>
     <label>Broker (WebSocket) <input id="broker" value="wss://broker.emqx.io:8084/mqtt"></label>
-    <button class="secondary" id="setupOther">Send other bear back to setup mode</button>
     <p>Bears talk over <code>teddy/&lt;pair&gt;/touch</code>. Anyone with the pair code can reach them, so keep it long and random. For privacy, run your own broker and change the address above and in the firmware.</p>
   </details>
 </main>
@@ -66,40 +55,61 @@
 <script>
 const $ = id => document.getElementById(id);
 const qs = new URLSearchParams(location.search);
-const state = { bears: {}, me: '', client: null, pair: '' , holding: false, hold: null };
+const LEDNAMES = ['off', 'pulsing', 'on'];
+const state = { bears: {}, me: '', client: null, pair: '', holds: {} };
 
 $('pair').value   = qs.get('pair') || localStorage.getItem('teddy.pair') || '';
 state.me          = qs.get('me')   || localStorage.getItem('teddy.myBear') || '';
 $('broker').value = localStorage.getItem('teddy.broker') || $('broker').value;
+if (qs.get('me')) localStorage.setItem('teddy.myBear', qs.get('me'));
 
 function status(msg, cls='') { $('status').textContent = msg; $('status').className = cls; }
-function other() { return Object.keys(state.bears).find(id => id !== state.me && state.bears[id].online); }
-function otherLed() { const o = other(); return o ? (state.bears[o].led|0) : 0; }
+const online = () => !!(state.client && state.client.connected);
 
 function render() {
-  const ids = Object.keys(state.bears).sort();
-  $('bears').innerHTML = ids.length ? ids.map(id => {
-    const b = state.bears[id];
-    return `<div class="bear"><span class="dot ${b.online?'on':''}"></span><code>${id}</code>
-      <span>${b.online?'online':'offline'} · light ${['off','pulsing','on'][b.led|0]||'?'}</span>
-      <span class="tag">${id===state.me?'mine':''}</span></div>`; }).join('') : '<p>No bears seen yet. Both bears must be on WiFi with this pair code.</p>';
-  const sel = $('me'); const cur = state.me;
-  sel.innerHTML = '<option value="">(pick one)</option>' + ids.map(id => `<option value="${id}" ${id===cur?'selected':''}>${id}</option>`).join('');
-  const ready = !!(state.client && state.client.connected && state.me && other());
-  $('paw').disabled = !ready;
-  $('light').classList.toggle('on', otherLed() !== 0);
-  $('light').setAttribute('aria-checked', otherLed() !== 0);
-  if (state.client && state.client.connected) {
-    if (!state.me) status('Connected. Pick which bear is yours.', 'ok');
-    else if (!other()) status('Connected. Waiting for the other bear to come online…', 'ok');
-    else status('Linked: you are ' + state.me + ', cuddles go to ' + other() + '.', 'ok');
-  }
+  const ids = Object.keys(state.bears).sort((a, b) => (a === state.me ? -1 : b === state.me ? 1 : a < b ? -1 : 1));
+  const box = $('bears');
+  // build cards once per bear, then update them in place so a held paw keeps its element
+  ids.forEach(id => {
+    if (!box.querySelector(`[data-bear="${id}"]`)) {
+      const el = document.createElement('div');
+      el.className = 'card bear'; el.dataset.bear = id;
+      el.innerHTML = `<h2><span class="dot"></span><span class="name"></span><span class="tag"></span></h2>
+        <button class="paw">Hold to buzz</button>
+        <div class="switch"><span>Light: <span class="ledname"></span></span><div class="toggle" role="switch"></div></div>
+        <div class="mode"><button class="secondary" data-led="1">Pulse</button><button class="secondary" data-led="2">Steady</button><button class="secondary" data-led="0">Off</button></div>
+        <button class="secondary mine">This one is mine</button>`;
+      const paw = el.querySelector('.paw');
+      paw.addEventListener('pointerdown', e => pawDown(id, paw, e));
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => paw.addEventListener(ev, () => pawUp(id)));
+      paw.addEventListener('contextmenu', e => e.preventDefault());
+      el.querySelector('.toggle').onclick = () => send(id, { led: (state.bears[id].led | 0) === 0 ? 1 : 0 });
+      el.querySelectorAll('[data-led]').forEach(b => b.onclick = () => send(id, { led: +b.dataset.led }));
+      el.querySelector('.mine').onclick = () => { state.me = id; localStorage.setItem('teddy.myBear', id); render(); };
+      box.querySelector('p') && box.querySelector('p').parentElement.remove();
+      box.appendChild(el);
+    }
+  });
+  ids.forEach((id, i) => {
+    const b = state.bears[id], el = box.querySelector(`[data-bear="${id}"]`);
+    box.appendChild(el);                                    // keeps "mine" first
+    el.classList.toggle('offline', !b.online);
+    el.querySelector('.dot').classList.toggle('on', b.online);
+    el.querySelector('.name').textContent = (id === state.me ? 'My bear ' : 'Bear ') + id;
+    el.querySelector('.tag').textContent = b.online ? 'online' : 'offline';
+    el.querySelector('.ledname').textContent = LEDNAMES[b.led | 0] || '?';
+    el.querySelector('.toggle').classList.toggle('on', (b.led | 0) !== 0);
+    el.querySelectorAll('[data-led]').forEach(x => x.classList.toggle('sel', +x.dataset.led === (b.led | 0)));
+    el.querySelector('.paw').disabled = !(online() && b.online);
+    el.querySelector('.mine').hidden = id === state.me;
+  });
+  if (online()) status(ids.length ? `Linked to ${ids.filter(i => state.bears[i].online).length} of ${ids.length} bear(s) on pair ${state.pair}.` : 'Connected. Waiting for a bear to come online…', 'ok');
 }
 
 function connect() {
   const pair = $('pair').value.trim();
   if (state.client) { state.client.end(true); state.client = null; }
-  state.bears = {}; state.pair = pair; render();
+  state.bears = {}; state.pair = pair; $('bears').innerHTML = '<div class="card"><p>No bears seen yet. A bear must be on WiFi with this pair code.</p></div>';
   if (pair.length < 4) { status('Enter the pair code from setup.', 'bad'); return; }
   localStorage.setItem('teddy.pair', pair);
   localStorage.setItem('teddy.broker', $('broker').value.trim());
@@ -109,35 +119,37 @@ function connect() {
   c.on('connect', () => { c.subscribe('teddy/' + pair + '/state/+'); render(); });
   c.on('message', (topic, payload) => {
     const id = topic.split('/').pop();
-    try { const j = JSON.parse(payload.toString()); state.bears[id] = { online: !!j.online, led: j.led|0 }; }
+    try { const j = JSON.parse(payload.toString()); state.bears[id] = { online: !!j.online, led: j.led | 0 }; }
     catch (e) { state.bears[id] = { online: false, led: 0 }; }
     render();
   });
-  c.on('close', () => { status('Broker connection lost, retrying…', 'bad'); $('paw').disabled = true; });
+  c.on('close', () => { status('Broker connection lost, retrying…', 'bad'); document.querySelectorAll('.paw').forEach(p => p.disabled = true); });
   c.on('error', e => status('Broker error: ' + e.message, 'bad'));
 }
 
-function send(obj) {
-  if (!state.client || !state.client.connected || !state.me) return;
-  state.client.publish('teddy/' + state.pair + '/touch', JSON.stringify(Object.assign({ from: state.me }, obj)));
+function send(to, obj) {
+  if (!online()) return;
+  state.client.publish('teddy/' + state.pair + '/touch', JSON.stringify(Object.assign({ from: 'app', to }, obj)));
 }
 
 // hold to buzz: re-send every 400 ms, the bear stops by itself 1.2 s after the last one
-function pawDown(e) { if ($('paw').disabled) return; e.preventDefault(); state.holding = true; $('paw').classList.add('down'); send({ motor: 1 }); clearInterval(state.hold); state.hold = setInterval(() => send({ motor: 1 }), 400); }
-function pawUp()    { if (!state.holding) return; state.holding = false; $('paw').classList.remove('down'); clearInterval(state.hold); send({ motor: 0 }); }
-$('paw').addEventListener('pointerdown', pawDown);
-['pointerup','pointercancel','pointerleave'].forEach(ev => $('paw').addEventListener(ev, pawUp));
-window.addEventListener('blur', pawUp);
-document.addEventListener('visibilitychange', () => { if (document.hidden) pawUp(); });
-$('paw').addEventListener('contextmenu', e => e.preventDefault());
+function pawDown(id, paw, e) {
+  if (paw.disabled) return; e.preventDefault();
+  paw.classList.add('down'); send(id, { motor: 1 });
+  clearInterval(state.holds[id]); state.holds[id] = setInterval(() => send(id, { motor: 1 }), 400);
+}
+function pawUp(id) {
+  if (!state.holds[id]) return;
+  clearInterval(state.holds[id]); delete state.holds[id];
+  const el = document.querySelector(`[data-bear="${id}"] .paw`); el && el.classList.remove('down');
+  send(id, { motor: 0 });
+}
+function releaseAll() { Object.keys(state.holds).forEach(pawUp); }
+window.addEventListener('blur', releaseAll);
+document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
 
-$('light').onclick = () => { if (!other()) return; send({ led: otherLed() === 0 ? 1 : 0 }); };
-$('me').onchange = () => { state.me = $('me').value; localStorage.setItem('teddy.myBear', state.me); render(); };
 $('pair').onchange = connect;
 $('broker').onchange = connect;
-$('setupOther').onclick = () => { const o = other(); if (!o || !confirm('Send bear ' + o + ' back to Bluetooth setup mode?')) return;
-  state.client.publish('teddy/' + state.pair + '/cmd/' + o, JSON.stringify({ cmd: 'setup' })); };
-
 connect();
 </script>
 </body>
