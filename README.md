@@ -195,7 +195,8 @@ moment the connection drops.
 
 The page is a small IoT-style app: a device card with the connection state (a
 beating heart while connected), the hold-to-buzz paw, a light switch that
-follows the bear's own LED state, and a settings sheet (theme, device info).
+follows the bear's own LED state, and a settings sheet (theme, steady or
+pulsing light, device info).
 On a phone, *Share → Add to Home Screen* installs it with the icon and a
 full-screen window (`brand/manifest.webmanifest`).
 
@@ -203,7 +204,7 @@ full-screen window (`brand/manifest.webmanifest`).
 
 The page is white-labelled. The IoME look lives in exactly two places:
 
-- `brand/` – wordmark, heart, app icon (currently a placeholder bear) and the
+- `brand/` – wordmark, heart, app icon (the plush elephant) and the
   web app manifest; see [`brand/README.md`](brand/README.md).
 - the `BRAND TOKENS` block at the top of the `<style>` in `app-ble.html` –
   colours, radii and fonts as CSS custom properties, light and dark.

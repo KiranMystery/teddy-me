@@ -16,7 +16,7 @@ page refers to a colour, font or logo directly.
 | --- | --- | --- |
 | `wordmark.svg` | Logo in the top bar | Pure outlines, no font needed. Any aspect ratio works; it is scaled to the height set by `--wordmark-h`. Colour is baked into the file on purpose (the wordmark's colour is part of the mark), so supply a version that reads on both the light and dark `--paper`. |
 | `heart.svg` | "Connected" live dot | Used as a CSS mask and tinted with `--brand`, so its own fill does not matter. Swap in any small silhouette (a dot, a logo mark). |
-| `icon.svg`, `icon-512.png`, `icon-192.png` | Favicon, apple-touch-icon, device avatar on the page, home-screen icon | **Placeholder** – a flat bear drawn on the brand ground. Replace with the real product icon, keeping the 512 box, the rounded-square ground and an opaque background (iOS squares it off; Android masks it). |
+| `icon.svg`, `icon-512.png`, `icon-192.png` | Favicon, apple-touch-icon, device avatar on the page, home-screen icon | A flat vector rendition of the plush elephant (face, ears, trunk, blush) on the brand ground, drawn from a description of the product photo rather than traced from it. The PNGs are rendered from the same geometry. Keep the 512 box, the rounded-square ground and an opaque background when replacing it (iOS squares it off; Android masks it). |
 | `manifest.webmanifest` | Add-to-home-screen name, colours and icons | `name` / `short_name`, `background_color` (splash) and `theme_color` are brand values too. Paths are relative to this folder. |
 
 The source of truth for the IoME assets is the private

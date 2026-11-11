@@ -256,10 +256,17 @@
         <button data-theme="dark" aria-pressed="false">Dark</button>
       </div>
     </div>
+    <div class="row">
+      <div class="label">Light</div>
+      <div class="seg" id="lightSeg" role="group" aria-label="Light mode">
+        <button data-mode="2" aria-pressed="true">Steady</button>
+        <button data-mode="1" aria-pressed="false">Pulse</button>
+      </div>
+    </div>
     <div class="row"><div class="label">Device</div><div class="val" id="aboutDevice">Teddy</div></div>
     <div class="row"><div class="label">Connection</div><div class="val" id="aboutConn">not connected</div></div>
     <div class="row"><div class="label">Service</div><div class="val"><code>0e7a1000-7edd-4bea-a000-5eed12345678</code></div></div>
-    <p class="fine">Hold the paw to buzz; the bear stops by itself if it stops hearing from the phone. Works in Chrome on Android, Mac and Windows, and in the Bluefy browser on iPhone. On a phone, add this page to the home screen for a full-screen app.</p>
+    <p class="fine">Hold the paw to buzz; the bear stops by itself if it stops hearing from the phone. Light "Pulse" needs the firmware with the slow-pulse LED mode; older firmware just turns the light on. Works in Chrome on Android, Mac and Windows, and in the Bluefy browser on iPhone. On a phone, add this page to the home screen for a full-screen app.</p>
     <p class="fine">Teddy · an IoME thing · <a href="https://github.com/KiranMystery/teddy-me">source</a></p>
     <button class="btn" id="sheetClose">Done</button>
   </div>
@@ -404,7 +411,23 @@
   document.addEventListener('visibilitychange', () => { if (document.hidden) stopBuzz(); });
 
   // --- Light toggle ---
-  light.addEventListener('click', () => { if (ledChr) { renderLed(!ledOn); write(ledChr, ledOn ? 1 : 0); } });
+  // The LED characteristic takes 0 = off, 1 = slow pulse, 2 = steady on (older
+  // firmware treats any nonzero byte as on) and notifies the same value back.
+  const lightSeg = document.getElementById('lightSeg');
+  const LIGHT_KEY = 'teddy-light-mode';
+  let lightMode = 2;
+  function applyLightMode(m) {
+    lightMode = (m === 1 || m === '1') ? 1 : 2;
+    lightSeg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.mode === lightMode ? 'true' : 'false'));
+  }
+  try { applyLightMode(localStorage.getItem(LIGHT_KEY)); } catch (_) { applyLightMode(2); }
+  lightSeg.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    applyLightMode(b.dataset.mode);
+    try { localStorage.setItem(LIGHT_KEY, String(lightMode)); } catch (_) {}
+    if (ledChr && ledOn) write(ledChr, lightMode);   // already lit: switch the pattern straight away
+  });
+  light.addEventListener('click', () => { if (ledChr) { renderLed(!ledOn); write(ledChr, ledOn ? lightMode : 0); } });
 
   // --- Theme (system / light / dark), remembered per browser ---
   const root = document.documentElement;

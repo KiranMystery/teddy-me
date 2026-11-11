@@ -1,22 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Teddy">
-  <title>Teddy (placeholder icon)</title>
-  <!-- PLACEHOLDER: replace with the traced photo icon. Keep the 512 box and the rounded-square ground. -->
+  <title>Teddy – plush elephant</title>
+  <!-- Flat rendition of the plush elephant (blue-grey fur, cream inner ears, pink blush) on the brand ground.
+       Drawn from a description of the product photo; cross-check proportions against the photo when it is available. -->
   <rect width="512" height="512" rx="112" fill="#DB9558"/>
-  <g fill="#1C1714">
-    <circle cx="150" cy="156" r="62"/>
-    <circle cx="362" cy="156" r="62"/>
-    <circle cx="256" cy="282" r="152"/>
+  <g fill="#A9B3C4">
+    <circle cx="112" cy="232" r="92"/>
+    <circle cx="400" cy="232" r="92"/>
   </g>
-  <g fill="#F7F4EE">
-    <circle cx="150" cy="156" r="30"/>
-    <circle cx="362" cy="156" r="30"/>
-    <ellipse cx="256" cy="326" rx="98" ry="70"/>
+  <g fill="#F0E6D2">
+    <circle cx="112" cy="232" r="58"/>
+    <circle cx="400" cy="232" r="58"/>
+  </g>
+  <circle cx="256" cy="246" r="150" fill="#A9B3C4"/>
+  <path d="M256 296 Q258 372 276 418" stroke="#8E9AAE" stroke-width="66" stroke-linecap="round" fill="none"/>
+  <path d="M252 296 Q254 370 270 414" stroke="#A9B3C4" stroke-width="56" stroke-linecap="round" fill="none"/>
+  <g stroke="#8E9AAE" stroke-width="7" stroke-linecap="round" fill="none">
+    <path d="M232 350 q22 8 44 0"/>
+    <path d="M238 382 q22 8 44 0"/>
+  </g>
+  <g fill="#E8B4B8">
+    <circle cx="170" cy="284" r="17"/>
+    <circle cx="342" cy="284" r="17"/>
   </g>
   <g fill="#1C1714">
-    <circle cx="206" cy="252" r="15"/>
-    <circle cx="306" cy="252" r="15"/>
-    <ellipse cx="256" cy="304" rx="34" ry="23"/>
-    <path d="M256 322v26" stroke="#1C1714" stroke-width="10" stroke-linecap="round" fill="none"/>
-    <path d="M222 352q34 28 68 0" stroke="#1C1714" stroke-width="10" stroke-linecap="round" fill="none"/>
+    <circle cx="206" cy="252" r="13"/>
+    <circle cx="306" cy="252" r="13"/>
   </g>
 </svg>
