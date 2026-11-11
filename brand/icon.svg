@@ -1,29 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Teddy">
   <title>Teddy – plush elephant</title>
-  <!-- Flat rendition of the plush elephant (blue-grey fur, cream inner ears, pink blush) on the brand ground.
-       Drawn from a description of the product photo; cross-check proportions against the photo when it is available. -->
+  <!-- Flat rendition of the plush elephant (blue-grey fur, cream inner ears, pink blush) on the brand ground,
+       proportions taken from the product photo: tall oval ears high on the head, long fat trunk from the brow. -->
   <rect width="512" height="512" rx="112" fill="#DB9558"/>
-  <g fill="#A9B3C4">
-    <circle cx="112" cy="232" r="92"/>
-    <circle cx="400" cy="232" r="92"/>
+  <g fill="#A7B1C3">
+    <ellipse cx="104" cy="218" rx="76" ry="104"/>
+    <ellipse cx="408" cy="218" rx="76" ry="104"/>
   </g>
-  <g fill="#F0E6D2">
-    <circle cx="112" cy="232" r="58"/>
-    <circle cx="400" cy="232" r="58"/>
+  <g fill="#F2EADA">
+    <ellipse cx="92" cy="222" rx="44" ry="74"/>
+    <ellipse cx="420" cy="222" rx="44" ry="74"/>
   </g>
-  <circle cx="256" cy="246" r="150" fill="#A9B3C4"/>
-  <path d="M256 296 Q258 372 276 418" stroke="#8E9AAE" stroke-width="66" stroke-linecap="round" fill="none"/>
-  <path d="M252 296 Q254 370 270 414" stroke="#A9B3C4" stroke-width="56" stroke-linecap="round" fill="none"/>
-  <g stroke="#8E9AAE" stroke-width="7" stroke-linecap="round" fill="none">
-    <path d="M232 350 q22 8 44 0"/>
-    <path d="M238 382 q22 8 44 0"/>
+  <circle cx="256" cy="246" r="152" fill="#A7B1C3"/>
+  <path d="M256 250 Q250 360 268 448" stroke="#8C98AC" stroke-width="80" stroke-linecap="round" fill="none"/>
+  <path d="M254 250 Q248 358 264 442" stroke="#A7B1C3" stroke-width="70" stroke-linecap="round" fill="none"/>
+  <g stroke="#8C98AC" stroke-width="7" stroke-linecap="round" fill="none">
+    <path d="M226 336 q26 9 52 0"/>
+    <path d="M230 376 q26 9 52 0"/>
   </g>
-  <g fill="#E8B4B8">
-    <circle cx="170" cy="284" r="17"/>
-    <circle cx="342" cy="284" r="17"/>
+  <g fill="#E9B6BA">
+    <ellipse cx="168" cy="286" rx="22" ry="15"/>
+    <ellipse cx="344" cy="286" rx="22" ry="15"/>
   </g>
   <g fill="#1C1714">
-    <circle cx="206" cy="252" r="13"/>
-    <circle cx="306" cy="252" r="13"/>
+    <circle cx="194" cy="244" r="13"/>
+    <circle cx="318" cy="244" r="13"/>
+  </g>
+  <g fill="#FFFFFF">
+    <circle cx="199" cy="239" r="4"/>
+    <circle cx="323" cy="239" r="4"/>
   </g>
 </svg>
