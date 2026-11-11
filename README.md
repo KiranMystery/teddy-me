@@ -18,8 +18,8 @@ Phone → ESP32 → buzz / light. Two flavours, same buttons:
 | `teddy_bear/teddy_bear.ino` | **WiFi** ESP32 sketch, control page embedded in it |
 | `app.html` | WiFi control page as a standalone file |
 | `teddy_link/teddy_link.ino` | **Linked bears** sketch: Bluetooth for setup, WiFi + MQTT to link two bears |
-| `setup.html` | Adds an animal: scans WiFi from the animal, you pick the network, enter the password and the zoo code, over Bluetooth |
-| `app-link.html` | The zoo: every animal on your zoo code, filters (mine / linked / online), tap one to buzz it, set its light, name it, and choose which animals its paw triggers |
+| `zoo.html` | **The zoo app**: adds an animal over Bluetooth (the animal scans WiFi, you pick the network, password and zoo code), then every animal on your zoo code with filters (mine / linked / online / by owner), hold-to-buzz, light modes, names, owners, paw links, and a QR to share the zoo |
+| `brand/` | White-label assets and tokens (wordmark, icon, colours, fonts, manifests), see `brand/README.md` |
 
 ## Parts
 
@@ -210,11 +210,11 @@ The page is white-labelled. The IoME look lives in exactly two places:
 
 - `brand/` – wordmark, heart, app icon (the plush elephant) and the
   web app manifest; see [`brand/README.md`](brand/README.md).
-- the `BRAND TOKENS` block at the top of the `<style>` in `app-ble.html` –
-  colours, radii and fonts as CSS custom properties, light and dark.
+- `brand/tokens.css` – colours, radii and fonts as CSS custom properties,
+  light and dark, shared by `app-ble.html` and `zoo.html`.
 
-Swap those and nothing else to re-brand it. The Bluetooth code below the
-styles is unchanged by any of this.
+Swap those and nothing else to re-brand it. The Bluetooth code in the pages
+is unchanged by any of this.
 
 ### BLE service (for building your own app later)
 
@@ -247,21 +247,31 @@ bear buzzes, tap the light and the other bear's light pulses. Bluetooth can't
 leave the room, so `teddy_link` works like a commercial IoT gadget:
 
 1. **Setup over Bluetooth, once.** Flash `./flash.sh link`. A bear with no WiFi
-   saved advertises as **Teddy**. Open `setup.html` (same browser rules as the
-   Bluetooth page) and connect. The animal scans for WiFi itself and the page
-   lists what it found, strongest first (2.4 GHz only, which is all it can
-   join). Pick one, type the password and a **zoo code**, send. The animal
-   saves it and reboots.
+   saved advertises as **Teddy**. Open `zoo.html` (same browser rules as the
+   Bluetooth page for this step: Chrome, or Bluefy on iPhone), tap **Add an
+   animal** and connect. The animal scans for WiFi itself and the app lists
+   what it found, strongest first (2.4 GHz only, which is all it can join).
+   Pick one, type the password, keep or change the **zoo code**, send. The
+   animal saves it and reboots; the app waits for it to come online, then
+   asks for a name, species and owner.
 2. **Everyday use over WiFi.** The bear joins WiFi (LED blinks while it
    connects, then one buzz) and connects to an MQTT broker. Do the same setup
    on the second bear with the **same pair code**.
-3. Open `app-link.html` on any phone browser, including iPhone Safari, no
+3. Everyday use: `zoo.html` on any phone browser, including iPhone Safari, no
    Bluetooth needed. It's your **zoo**: every animal on the zoo code, with
-   filters for *mine*, *linked to mine* and *online*. Tap an animal to open
-   it: hold the paw and it buzzes while you hold (stops 1.2 s after you let go
-   even if your phone dies mid-cuddle), set its light to off / pulse / steady,
-   give it a name, species and owner, and tick which animals its **paw button**
-   triggers. "It's mine" sets you as the owner.
+   filters for *mine*, *linked to mine*, *online* and each other owner. Tap an
+   animal to open it: hold the paw and it buzzes while you hold (stops 1.2 s
+   after you let go even if your phone dies mid-cuddle), set its light to off /
+   pulse / steady, edit its name, species and owner, and under **Paw
+   triggers → Edit** tick which animals its **paw button** reaches. "It's
+   mine" sets you as the owner. *Add to Home Screen* installs it as an app.
+
+   **Sharing the zoo.** Settings shows the zoo code as a QR. Someone points
+   their phone camera at it (or opens the link), the app opens on a *Join*
+   screen listing the animals, and one tap joins. The link is
+   `zoo.html?join=<code>`; hosted at iome.uk it is the short form
+   `https://iome.uk/zoo/<code>`, which needs a rewrite rule on the host
+   (Netlify `_redirects`: `/zoo/*  /zoo.html?join=:splat  200`).
 
 4. **The paw button.** A push button between **GPIO 27** and **GND** (the
    firmware enables the internal pull-up, no resistor needed). Squeeze it and
@@ -271,15 +281,15 @@ leave the room, so `teddy_link` works like a commercial IoT gadget:
 While in setup mode the bear still accepts the plain Bluetooth app, so
 `app-ble.html` keeps working for direct control.
 
-**Getting back to setup mode:** in `app-link.html` → Advanced → "Send other
-bear back to setup mode", or type `reset` in the serial monitor. If the saved
+**Getting back to setup mode:** open the animal in `zoo.html` → "Send back to
+Bluetooth setup", or type `reset` in the serial monitor. If the saved
 WiFi can't be joined within 20 s the bear falls back to setup mode by itself.
 
 **Broker and privacy:** it uses the public test broker `broker.emqx.io` (port
 1883 for the bears, `wss://broker.emqx.io:8084/mqtt` for the page). Anyone who
 knows the pair code can poke your bear, so the setup page generates a random
 8-character code. For real privacy run your own Mosquitto/EMQX and change
-`MQTT_HOST` in the sketch and the broker field under Advanced.
+`MQTT_HOST` in the sketch and the broker field under Settings → Advanced.
 
 ### MQTT topics (`<pair>` is the pair code, `<id>` the 6-hex bear id)
 

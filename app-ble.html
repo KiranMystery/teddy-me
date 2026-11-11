@@ -17,43 +17,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600&family=Work+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="brand/tokens.css">
 <style>
-  /* ============================================================
-     BRAND TOKENS – the only colours, radii and fonts in the page.
-     To white-label: edit this block and replace the files in brand/.
-     ============================================================ */
-  :root {
-    --brand: #DB9558;          /* primary: controls, live dot, wordmark ground */
-    --on-brand: #1C1714;       /* text and glyphs placed on --brand */
-    --paper: #F7F4EE;          /* page background */
-    --card: #FFFFFF;           /* cards and sheets */
-    --ink: #1C1714;            /* text */
-    --mute: #6E655C;           /* secondary text */
-    --line: #E8E1D6;           /* hairlines, switch track off */
-    --accent: #2B4C7E;         /* links, focus of secondary actions */
-    --err: #B5442B;            /* error status */
-    --shadow: 0 10px 30px rgba(28, 23, 20, .12);
-    --r-card: 22px;
-    --r-ctl: 14px;
-    --r-pill: 999px;
-    --font-display: "Jost", "Futura", "Century Gothic", "Avenir Next", sans-serif;
-    --font-body: "Work Sans", "Helvetica Neue", Arial, sans-serif;
-    --wordmark-h: 22px;
-    color-scheme: light;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --paper: #1C1714; --card: #2A231F; --ink: #F3EEE6; --mute: #A39A90; --line: #3B322C;
-      --accent: #7FA1D6; --err: #F0876F; --shadow: 0 10px 30px rgba(0, 0, 0, .45);
-      color-scheme: dark;
-    }
-  }
-  :root[data-theme="dark"] {
-    --paper: #1C1714; --card: #2A231F; --ink: #F3EEE6; --mute: #A39A90; --line: #3B322C;
-    --accent: #7FA1D6; --err: #F0876F; --shadow: 0 10px 30px rgba(0, 0, 0, .45);
-    color-scheme: dark;
-  }
-  /* ===================== end of brand tokens ===================== */
+  /* Brand tokens (colours, radii, fonts) come from brand/tokens.css */
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; margin: 0; }
