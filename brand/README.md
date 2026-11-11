@@ -1,0 +1,32 @@
+# brand/ – white-label assets
+
+Everything that makes `app-ble.html` look like an **IoME** product lives in
+two places, and nowhere else:
+
+1. **This folder** – the image assets and the web app manifest.
+2. **`tokens.css`** in this folder: colours, radii and font stacks as CSS
+   custom properties on `:root` (light values, then the dark overrides),
+   linked by `app-ble.html` and `zoo.html`. The Google Fonts `<link>` in each
+   page loads the faces the font stacks name.
+
+To re-brand, replace the files here and edit `tokens.css`. Nothing else in
+the pages refers to a colour, font or logo directly.
+
+| File | Used as | Notes |
+| --- | --- | --- |
+| `wordmark.svg` | Logo in the top bar | Pure outlines, no font needed. Any aspect ratio works; it is scaled to the height set by `--wordmark-h`. Colour is baked into the file on purpose (the wordmark's colour is part of the mark), so supply a version that reads on both the light and dark `--paper`. |
+| `heart.svg` | "Connected" live dot | Used as a CSS mask and tinted with `--brand`, so its own fill does not matter. Swap in any small silhouette (a dot, a logo mark). |
+| `icon.svg`, `icon-512.png`, `icon-192.png` | Favicon, apple-touch-icon, device avatar on the page, home-screen icon | A flat vector rendition of the whole plush elephant (head, ears, trunk, body, arms and feet) on the brand ground, proportions and colours matched to the product photo. The PNGs are rendered from the same geometry. Keep the 512 box, the rounded-square ground and an opaque background when replacing it (iOS squares it off; Android masks it). |
+| `icon-photo-512.png` | Alternative icon | The product photo itself, square-cropped with the rounded-square mask on its own cream background. Not wired in; to use it, point the `<link rel="icon">` / `apple-touch-icon`, the `.avatar` `src` and the manifest icons at it. |
+| `tokens.css` | The design tokens | Light values, then dark overrides under `prefers-color-scheme` and `[data-theme]`. |
+| `manifest.webmanifest`, `manifest-zoo.webmanifest` | Add-to-home-screen name, colours and icons for `app-ble.html` and `zoo.html` | `name` / `short_name`, `background_color` (splash) and `theme_color` are brand values too. Paths are relative to this folder. |
+
+The source of truth for the IoME assets is the private
+[KiranMystery/iome](https://github.com/KiranMystery/iome) repo
+(`logo/iome-logo.svg` is `wordmark.svg` here; the heart is the `heart` path
+from the same file). Palette from its README: primary `#DB9558`, secondary
+`#1C1714`, white `#FFFFFF`; the paper, mute and accent values come from the
+iome.uk site styles.
+
+Nothing product-specific is here: the bear's name, the paw control, the UUIDs
+and the Bluetooth code stay in `app-ble.html`.
