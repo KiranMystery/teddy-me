@@ -202,7 +202,7 @@ moment the connection drops.
 |---|---|---|
 | `0e7a1000-7edd-4bea-a000-5eed12345678` | service | |
 | `0e7a1001-…` | motor | write 1 = buzz, 0 = stop. Keep writing 1 every ≤1 s while holding |
-| `0e7a1002-…` | led | write 1/0, read, notify on change |
+| `0e7a1002-…` | led | write 0 off / 1 slow pulse / 2 steady, read, notify on change |
 
 ## Using it – WiFi
 
