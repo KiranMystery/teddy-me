@@ -250,7 +250,10 @@
         <div class="card nets" id="nets"></div>
         <div class="card form" id="wifiForm" hidden>
           <label class="field" id="ssidField" hidden>Network name<input id="ssid" autocomplete="off" autocapitalize="off" placeholder="Exactly as the router has it"></label>
-          <label class="field" id="passField">Password for <span id="passFor"></span><input id="pass" type="password" autocomplete="off"></label>
+          <div class="field" id="passField"><label for="pass">Password for <span id="passFor"></span></label>
+            <div style="display:flex;gap:8px"><input id="pass" type="password" autocomplete="new-password" autocapitalize="off" spellcheck="false" style="flex:1"><button class="pill" id="showPass" type="button" style="flex:none">Show</button></div>
+            <span class="help" id="passHelp" hidden></span>
+          </div>
           <div class="field">Zoo code
             <div style="display:flex;gap:8px"><input id="pair" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false" style="letter-spacing:.06em"><button class="pill" id="genCode" type="button">New</button></div>
             <span class="help">Your zoo's code, already filled in. Animals with the same code see and trigger each other; New starts a separate zoo.</span>
@@ -272,8 +275,10 @@
         <div class="status"><span class="dot busy"></span><span id="joinText">Restarting and joining WiFi…</span></div>
         <span class="sub">Its light blinks until it is online, then it buzzes once.</span>
       </div>
+      <p class="sub" id="joinHelp" hidden style="text-align:center">Not online yet. If its light is still blinking it could not join, usually a wrong password. Connect again over Bluetooth and the animal says why.</p>
       <div style="flex:1"></div>
       <button class="btn secondary" id="skipWait" hidden>Continue without waiting</button>
+      <button class="btn quiet" id="retryBle" hidden>Connect again over Bluetooth</button>
     </div>
 
     <div id="add4" hidden class="screen">
@@ -766,7 +771,10 @@ $('joinNo').onclick = () => { joinLeave(false); go('#/'); };
 const SERVICE = '0e7a1000-7edd-4bea-a000-5eed12345678', SETUP = '0e7a1003-7edd-4bea-a000-5eed12345678',
       INFO = '0e7a1004-7edd-4bea-a000-5eed12345678', NETS = '0e7a1005-7edd-4bea-a000-5eed12345678';
 const enc = new TextEncoder(), dec = new TextDecoder();
-const ADD = { step: 1, device: null, setupChr: null, infoChr: null, netsChr: null, id: '', nets: [], scanning: false, pick: null, ssid: '', sent: false, pendingId: '', waitTimer: null, species: 'elephant' };
+const ADD = { step: 1, device: null, setupChr: null, infoChr: null, netsChr: null, id: '', nets: [], scanning: false, pick: null, ssid: '', sent: false, pendingId: '', waitTimer: null, helpTimer: null, species: 'elephant', fail: '' };
+// wifi=fail:<reason> in INFO: the hub's disconnect reason from the last attempt
+const WIFI_REASONS = { 201: 'network not found', 202: 'wrong password', 15: 'wrong password (handshake timed out)', 200: 'the router stopped answering', 203: 'the router refused the connection', 8: 'the router dropped it' };
+function wifiFailText(info) { const m = info.match(/wifi=fail(?::(\d+))?/); if (!m) return ''; const r = +m[1]; return WIFI_REASONS[r] || (r ? 'reason ' + r : 'unknown reason'); }
 const bars = r => r > -55 ? 4 : r > -65 ? 3 : r > -75 ? 2 : 1;
 function addStatus(text, bad, busy) { $('addStatusText').textContent = text; $('addStatus').classList.toggle('bad', !!bad); $('addDot').className = 'dot' + (busy ? ' busy' : ADD.device && ADD.device.gatt.connected ? ' on' : ''); }
 async function bleWrite(chr, bytes) {
@@ -779,7 +787,9 @@ function renderAdd() {
   [1, 2, 3, 4].forEach(n => $('add' + n).hidden = n !== ADD.step);
   if (ADD.step === 1) {
     $('nobt').hidden = !!navigator.bluetooth; $('btConnect').hidden = !navigator.bluetooth;
-    $('foundCard').hidden = !ADD.id; $('foundName').textContent = 'Teddy ' + ADD.id; $('foundSub').textContent = 'New · not set up yet';
+    $('foundCard').hidden = !ADD.id; $('foundName').textContent = 'Teddy ' + ADD.id;
+    $('foundSub').textContent = ADD.fail ? 'Could not join WiFi last time: ' + ADD.fail : 'New · not set up yet';
+    $('foundSub').style.color = ADD.fail ? 'var(--err)' : '';
     if (!ADD.device) addStatus('not connected', false, false);
   } else if (ADD.step === 2) {
     $('addName2').textContent = 'Teddy ' + ADD.id;
@@ -794,6 +804,7 @@ function renderAdd() {
       if (picked) {
         const other = ADD.pick === 'other', n = other ? null : ADD.nets[ADD.pick];
         $('ssidField').hidden = !other; $('passField').hidden = !(other || n.l); $('passFor').textContent = other ? 'it' : n.s;
+        $('passHelp').hidden = !ADD.fail; $('passHelp').textContent = ADD.fail ? 'Last time it could not join: ' + ADD.fail + '. Tap Show to check what you type.' : '';
         if (!$('pair').value) $('pair').value = validCode(S.zoo) ? S.zoo : genCode();
       }
     }
@@ -821,7 +832,8 @@ $('btConnect').onclick = async () => {
     try { ADD.netsChr = await svc.getCharacteristic(NETS); } catch (_) { ADD.netsChr = null; }
     const info = dec.decode(await ADD.infoChr.readValue());
     ADD.id = (info.match(/id=(\w+)/) || [])[1] || '?';
-    addStatus('connected to Teddy ' + ADD.id, false, false);
+    ADD.fail = wifiFailText(info);
+    addStatus('connected to Teddy ' + ADD.id + (ADD.fail ? ' · WiFi failed last time: ' + ADD.fail : ''), !!ADD.fail, false);
     try { await ADD.infoChr.startNotifications(); ADD.infoChr.addEventListener('characteristicvaluechanged', e => {
       const v = dec.decode(e.target.value);
       if (v.startsWith('ok=saved')) addSaved();
@@ -850,6 +862,8 @@ async function readNets() {
   renderAdd();
 }
 $('rescan').onclick = scanNets;
+$('showPass').onclick = () => { const p = $('pass'), show = p.type === 'password'; p.type = show ? 'text' : 'password'; $('showPass').textContent = show ? 'Hide' : 'Show'; p.focus(); };
+$('retryBle').onclick = () => { addLeave(); renderAdd(); };
 $('genCode').onclick = () => { $('pair').value = genCode(); };
 $('sendSetup').onclick = async () => {
   const other = ADD.pick === 'other';
@@ -870,11 +884,12 @@ function addSaved() {
   if (ADD.step !== 2) return;
   $('sendSetup').disabled = false;
   ADD.step = 3; ADD.pendingId = ADD.id; renderAdd();
-  $('skipWait').hidden = true;
+  $('skipWait').hidden = true; $('joinHelp').hidden = true; $('retryBle').hidden = true;
   const a = S.animals[ADD.id]; if (a && a.online) { addArrived(); return; }
   ADD.waitTimer = setTimeout(() => { $('skipWait').hidden = false; }, 15000);
+  ADD.helpTimer = setTimeout(() => { $('joinHelp').hidden = false; $('retryBle').hidden = false; }, 30000);
 }
-function addArrived() { if (ADD.step !== 3) return; clearTimeout(ADD.waitTimer); ADD.step = 4; renderAdd(); $('newName').focus({ preventScroll: true }); }
+function addArrived() { if (ADD.step !== 3) return; clearTimeout(ADD.waitTimer); clearTimeout(ADD.helpTimer); ADD.step = 4; renderAdd(); $('newName').focus({ preventScroll: true }); }
 $('skipWait').onclick = addArrived;
 $('newSpecies').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ADD.species = b.dataset.v; renderAdd(); });
 $('finishAdd').onclick = () => {
@@ -886,10 +901,10 @@ $('finishAdd').onclick = () => {
   go('#/animal/' + encodeURIComponent(ADD.id));
 }
 function addLeave() {
-  clearTimeout(ADD.waitTimer);
+  clearTimeout(ADD.waitTimer); clearTimeout(ADD.helpTimer);
   if (ADD.device && ADD.device.gatt.connected) { try { ADD.device.gatt.disconnect(); } catch (_) {} }
-  Object.assign(ADD, { step: 1, device: null, setupChr: null, infoChr: null, netsChr: null, id: '', nets: [], scanning: false, pick: null, sent: false, species: 'elephant' });
-  $('pass').value = ''; $('ssid').value = ''; $('pair').value = ''; $('newName').value = ''; $('newOwner').value = ''; $('sendSetup').disabled = false;
+  Object.assign(ADD, { step: 1, device: null, setupChr: null, infoChr: null, netsChr: null, id: '', nets: [], scanning: false, pick: null, sent: false, species: 'elephant', fail: '' });
+  $('pass').value = ''; $('pass').type = 'password'; $('showPass').textContent = 'Show'; $('ssid').value = ''; $('pair').value = ''; $('newName').value = ''; $('newOwner').value = ''; $('sendSetup').disabled = false;
 }
 
 // ======================= boot =======================
