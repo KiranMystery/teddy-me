@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Teddy">
+  <title>Teddy (placeholder icon)</title>
+  <!-- PLACEHOLDER: replace with the traced photo icon. Keep the 512 box and the rounded-square ground. -->
+  <rect width="512" height="512" rx="112" fill="#DB9558"/>
+  <g fill="#1C1714">
+    <circle cx="150" cy="156" r="62"/>
+    <circle cx="362" cy="156" r="62"/>
+    <circle cx="256" cy="282" r="152"/>
+  </g>
+  <g fill="#F7F4EE">
+    <circle cx="150" cy="156" r="30"/>
+    <circle cx="362" cy="156" r="30"/>
+    <ellipse cx="256" cy="326" rx="98" ry="70"/>
+  </g>
+  <g fill="#1C1714">
+    <circle cx="206" cy="252" r="15"/>
+    <circle cx="306" cy="252" r="15"/>
+    <ellipse cx="256" cy="304" rx="34" ry="23"/>
+    <path d="M256 322v26" stroke="#1C1714" stroke-width="10" stroke-linecap="round" fill="none"/>
+    <path d="M222 352q34 28 68 0" stroke="#1C1714" stroke-width="10" stroke-linecap="round" fill="none"/>
+  </g>
+</svg>
