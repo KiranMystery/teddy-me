@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Teddy link</title>
+<style>
+  :root { --bg:#fff7ef; --card:#fff; --ink:#3b2a1e; --muted:#8a6f5c; --accent:#d9715f; --accent2:#f0a58f; --ok:#3a9d5d; --bad:#c0392b; --line:#eadfd3; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1f1a17; --card:#2a2320; --ink:#f4e9dd; --muted:#bca391; --line:#3d332d; } }
+  * { box-sizing:border-box }
+  html, body { height:100% }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--ink); font:16px/1.4 system-ui,-apple-system,sans-serif; -webkit-user-select:none; user-select:none; touch-action:manipulation }
+  main { max-width:420px; margin:0 auto; display:grid; gap:14px }
+  h1 { margin:8px 0 0; font-size:22px } p { margin:0; color:var(--muted) }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; display:grid; gap:12px }
+  label { display:grid; gap:4px; font-size:14px; color:var(--muted) }
+  input, select { font:inherit; padding:12px; border:1px solid var(--line); border-radius:10px; background:transparent; color:var(--ink) }
+  button { font:inherit; font-weight:600; padding:14px; border:0; border-radius:12px; background:var(--accent); color:#fff; cursor:pointer }
+  button.secondary { background:transparent; color:var(--ink); border:1px solid var(--line) }
+  #status { font-size:14px } #status.ok{color:var(--ok)} #status.bad{color:var(--bad)}
+  .bears { display:grid; gap:8px }
+  .bear { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--line); border-radius:12px }
+  .dot { width:10px; height:10px; border-radius:50%; background:#bbb } .dot.on { background:var(--ok) }
+  .bear .tag { margin-left:auto; font-size:12px; color:var(--muted) }
+  #paw { height:150px; font-size:20px; border-radius:24px; background:var(--accent); transition:transform .08s, background .08s; -webkit-touch-callout:none }
+  #paw.down { transform:scale(.96); background:var(--accent2) }
+  #paw:disabled { background:#bbb }
+  .switch { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border:1px solid var(--line); border-radius:12px }
+  .toggle { width:52px; height:30px; border-radius:15px; background:#bbb; position:relative; transition:background .15s }
+  .toggle::after { content:""; position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%; background:#fff; transition:left .15s }
+  .toggle.on { background:var(--ok) } .toggle.on::after { left:25px }
+  code { background:rgba(127,127,127,.15); padding:2px 6px; border-radius:6px }
+  details summary { cursor:pointer; color:var(--muted); font-size:14px }
+</style>
+</head>
+<body>
+<main>
+  <h1>Teddy link</h1>
+  <p>Hold the paw and the <b>other</b> bear buzzes. The light switches the other bear's light.</p>
+
+  <div class="card">
+    <label>Pair code <input id="pair" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+    <div class="bears" id="bears"><p>No bears seen yet.</p></div>
+    <label>Which bear is mine?
+      <select id="me"><option value="">(pick one)</option></select>
+    </label>
+    <div id="status">Not connected.</div>
+  </div>
+
+  <div class="card">
+    <button id="paw" disabled>Hold to send a cuddle</button>
+    <div class="switch">
+      <span>Other bear's light</span>
+      <div class="toggle" id="light" role="switch" aria-checked="false"></div>
+    </div>
+  </div>
+
+  <details class="card">
+    <summary>Advanced</summary>
+    <label>Broker (WebSocket) <input id="broker" value="wss://broker.emqx.io:8084/mqtt"></label>
+    <button class="secondary" id="setupOther">Send other bear back to setup mode</button>
+    <p>Bears talk over <code>teddy/&lt;pair&gt;/touch</code>. Anyone with the pair code can reach them, so keep it long and random. For privacy, run your own broker and change the address above and in the firmware.</p>
+  </details>
+</main>
+<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const qs = new URLSearchParams(location.search);
+const state = { bears: {}, me: '', client: null, pair: '' , holding: false, hold: null };
+
+$('pair').value   = qs.get('pair') || localStorage.getItem('teddy.pair') || '';
+state.me          = qs.get('me')   || localStorage.getItem('teddy.myBear') || '';
+$('broker').value = localStorage.getItem('teddy.broker') || $('broker').value;
+
+function status(msg, cls='') { $('status').textContent = msg; $('status').className = cls; }
+function other() { return Object.keys(state.bears).find(id => id !== state.me && state.bears[id].online); }
+function otherLed() { const o = other(); return o ? (state.bears[o].led|0) : 0; }
+
+function render() {
+  const ids = Object.keys(state.bears).sort();
+  $('bears').innerHTML = ids.length ? ids.map(id => {
+    const b = state.bears[id];
+    return `<div class="bear"><span class="dot ${b.online?'on':''}"></span><code>${id}</code>
+      <span>${b.online?'online':'offline'} · light ${['off','pulsing','on'][b.led|0]||'?'}</span>
+      <span class="tag">${id===state.me?'mine':''}</span></div>`; }).join('') : '<p>No bears seen yet. Both bears must be on WiFi with this pair code.</p>';
+  const sel = $('me'); const cur = state.me;
+  sel.innerHTML = '<option value="">(pick one)</option>' + ids.map(id => `<option value="${id}" ${id===cur?'selected':''}>${id}</option>`).join('');
+  const ready = !!(state.client && state.client.connected && state.me && other());
+  $('paw').disabled = !ready;
+  $('light').classList.toggle('on', otherLed() !== 0);
+  $('light').setAttribute('aria-checked', otherLed() !== 0);
+  if (state.client && state.client.connected) {
+    if (!state.me) status('Connected. Pick which bear is yours.', 'ok');
+    else if (!other()) status('Connected. Waiting for the other bear to come online…', 'ok');
+    else status('Linked: you are ' + state.me + ', cuddles go to ' + other() + '.', 'ok');
+  }
+}
+
+function connect() {
+  const pair = $('pair').value.trim();
+  if (state.client) { state.client.end(true); state.client = null; }
+  state.bears = {}; state.pair = pair; render();
+  if (pair.length < 4) { status('Enter the pair code from setup.', 'bad'); return; }
+  localStorage.setItem('teddy.pair', pair);
+  localStorage.setItem('teddy.broker', $('broker').value.trim());
+  status('Connecting to broker…');
+  const c = mqtt.connect($('broker').value.trim(), { clientId: 'teddyapp-' + Math.random().toString(16).slice(2, 8), keepalive: 30, reconnectPeriod: 3000 });
+  state.client = c;
+  c.on('connect', () => { c.subscribe('teddy/' + pair + '/state/+'); render(); });
+  c.on('message', (topic, payload) => {
+    const id = topic.split('/').pop();
+    try { const j = JSON.parse(payload.toString()); state.bears[id] = { online: !!j.online, led: j.led|0 }; }
+    catch (e) { state.bears[id] = { online: false, led: 0 }; }
+    render();
+  });
+  c.on('close', () => { status('Broker connection lost, retrying…', 'bad'); $('paw').disabled = true; });
+  c.on('error', e => status('Broker error: ' + e.message, 'bad'));
+}
+
+function send(obj) {
+  if (!state.client || !state.client.connected || !state.me) return;
+  state.client.publish('teddy/' + state.pair + '/touch', JSON.stringify(Object.assign({ from: state.me }, obj)));
+}
+
+// hold to buzz: re-send every 400 ms, the bear stops by itself 1.2 s after the last one
+function pawDown(e) { if ($('paw').disabled) return; e.preventDefault(); state.holding = true; $('paw').classList.add('down'); send({ motor: 1 }); clearInterval(state.hold); state.hold = setInterval(() => send({ motor: 1 }), 400); }
+function pawUp()    { if (!state.holding) return; state.holding = false; $('paw').classList.remove('down'); clearInterval(state.hold); send({ motor: 0 }); }
+$('paw').addEventListener('pointerdown', pawDown);
+['pointerup','pointercancel','pointerleave'].forEach(ev => $('paw').addEventListener(ev, pawUp));
+window.addEventListener('blur', pawUp);
+document.addEventListener('visibilitychange', () => { if (document.hidden) pawUp(); });
+$('paw').addEventListener('contextmenu', e => e.preventDefault());
+
+$('light').onclick = () => { if (!other()) return; send({ led: otherLed() === 0 ? 1 : 0 }); };
+$('me').onchange = () => { state.me = $('me').value; localStorage.setItem('teddy.myBear', state.me); render(); };
+$('pair').onchange = connect;
+$('broker').onchange = connect;
+$('setupOther').onclick = () => { const o = other(); if (!o || !confirm('Send bear ' + o + ' back to Bluetooth setup mode?')) return;
+  state.client.publish('teddy/' + state.pair + '/cmd/' + o, JSON.stringify({ cmd: 'setup' })); };
+
+connect();
+</script>
+</body>
+</html>
