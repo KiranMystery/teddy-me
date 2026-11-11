@@ -38,7 +38,9 @@
       <div class="row"><select id="nets"><option value="">Scanning…</option></select><button class="secondary" id="rescan" type="button">Rescan</button></div>
     </label>
     <label id="ssidRow" hidden>Network name <input id="ssid" autocomplete="off" autocapitalize="off" placeholder="type the WiFi name"></label>
-    <label>WiFi password <input id="pass" type="password" autocomplete="off"></label>
+    <label>WiFi password
+      <div class="row"><input id="pass" type="password" autocomplete="new-password" autocapitalize="off" spellcheck="false"><button class="secondary" id="showPass" type="button" style="flex:0 0 auto">Show</button></div>
+    </label>
     <label>Zoo code (same on every animal)
       <div class="row"><input id="pair" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="secondary" id="gen" type="button">New</button></div>
     </label>
@@ -82,6 +84,7 @@ async function readNets() {
   catch (e) { showNets([]); status('Could not read the network list: ' + e.message, 'bad'); }
 }
 $('rescan').onclick = scan;
+$('showPass').onclick = () => { const p = $('pass'), show = p.type === 'password'; p.type = show ? 'text' : 'password'; $('showPass').textContent = show ? 'Hide' : 'Show'; p.focus(); };
 
 function status(msg, cls='') { $('status').textContent = msg; $('status').className = cls; }
 function genCode() { const a='abcdefghjkmnpqrstuvwxyz23456789'; let s=''; for (let i=0;i<8;i++) s+=a[Math.floor(Math.random()*a.length)]; return s; }
