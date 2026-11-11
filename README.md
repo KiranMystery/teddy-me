@@ -17,6 +17,9 @@ Phone → ESP32 → buzz / light. Two flavours, same buttons:
 | `app-ble.html` | **Bluetooth** control page (Web Bluetooth) |
 | `teddy_bear/teddy_bear.ino` | **WiFi** ESP32 sketch, control page embedded in it |
 | `app.html` | WiFi control page as a standalone file |
+| `teddy_link/teddy_link.ino` | **Linked bears** sketch: Bluetooth for setup, WiFi + MQTT to link two bears |
+| `setup.html` | Adds an animal: scans WiFi from the animal, you pick the network, enter the password and the zoo code, over Bluetooth |
+| `app-link.html` | The zoo: every animal on your zoo code, filters (mine / linked / online), tap one to buzz it, set its light, name it, and choose which animals its paw triggers |
 
 ## Parts
 
@@ -52,6 +55,7 @@ Phone → ESP32 → buzz / light. Two flavours, same buttons:
 |---|---|
 | GPIO 25 | 220 Ω → LED long leg (anode). LED short leg → GND |
 | GPIO 26 | 1 kΩ → transistor **base** |
+| GPIO 27 | push button → GND (paw button, `teddy_link` only; optional) |
 | 3V3 | motor **+** wire, and diode **stripe** end |
 | GND | transistor **emitter**, LED short leg |
 | – | motor **–** wire → transistor **collector** → diode non-stripe end |
@@ -218,7 +222,7 @@ styles is unchanged by any of this.
 |---|---|---|
 | `0e7a1000-7edd-4bea-a000-5eed12345678` | service | |
 | `0e7a1001-…` | motor | write 1 = buzz, 0 = stop. Keep writing 1 every ≤1 s while holding |
-| `0e7a1002-…` | led | write 1/0, read, notify on change |
+| `0e7a1002-…` | led | write 0 off / 1 slow pulse / 2 steady, read, notify on change |
 
 ## Using it – WiFi
 
@@ -235,6 +239,65 @@ On the phone, *Share → Add to Home Screen* gives you a full-screen app icon.
 
 - **Hold the paw** → motor runs while held, stops on release.
 - **Light** → toggles the LED.
+
+## Linking animals: the zoo
+
+The goal: two bears in two homes; hold the paw in the app and the *other*
+bear buzzes, tap the light and the other bear's light pulses. Bluetooth can't
+leave the room, so `teddy_link` works like a commercial IoT gadget:
+
+1. **Setup over Bluetooth, once.** Flash `./flash.sh link`. A bear with no WiFi
+   saved advertises as **Teddy**. Open `setup.html` (same browser rules as the
+   Bluetooth page) and connect. The animal scans for WiFi itself and the page
+   lists what it found, strongest first (2.4 GHz only, which is all it can
+   join). Pick one, type the password and a **zoo code**, send. The animal
+   saves it and reboots.
+2. **Everyday use over WiFi.** The bear joins WiFi (LED blinks while it
+   connects, then one buzz) and connects to an MQTT broker. Do the same setup
+   on the second bear with the **same pair code**.
+3. Open `app-link.html` on any phone browser, including iPhone Safari, no
+   Bluetooth needed. It's your **zoo**: every animal on the zoo code, with
+   filters for *mine*, *linked to mine* and *online*. Tap an animal to open
+   it: hold the paw and it buzzes while you hold (stops 1.2 s after you let go
+   even if your phone dies mid-cuddle), set its light to off / pulse / steady,
+   give it a name, species and owner, and tick which animals its **paw button**
+   triggers. "It's mine" sets you as the owner.
+
+4. **The paw button.** A push button between **GPIO 27** and **GND** (the
+   firmware enables the internal pull-up, no resistor needed). Squeeze it and
+   every animal ticked under "Paw links" buzzes for as long as you hold; the
+   animal's own light goes steady while squeezed as feedback. No phone needed.
+
+While in setup mode the bear still accepts the plain Bluetooth app, so
+`app-ble.html` keeps working for direct control.
+
+**Getting back to setup mode:** in `app-link.html` → Advanced → "Send other
+bear back to setup mode", or type `reset` in the serial monitor. If the saved
+WiFi can't be joined within 20 s the bear falls back to setup mode by itself.
+
+**Broker and privacy:** it uses the public test broker `broker.emqx.io` (port
+1883 for the bears, `wss://broker.emqx.io:8084/mqtt` for the page). Anyone who
+knows the pair code can poke your bear, so the setup page generates a random
+8-character code. For real privacy run your own Mosquitto/EMQX and change
+`MQTT_HOST` in the sketch and the broker field under Advanced.
+
+### MQTT topics (`<pair>` is the pair code, `<id>` the 6-hex bear id)
+
+| Topic | Who | Payload |
+|---|---|---|
+| `teddy/<pair>/touch` | app or bear → bears | `{"from":"app","to":"<id>","motor":1}` every 400 ms while held, `…"motor":0}` on release, `…"led":1}` (0 off, 1 pulse, 2 steady). With `to`, only that bear reacts. Without `to` (bear-to-bear, e.g. a future paw sensor) every bear except `from` reacts. |
+| `teddy/<pair>/state/<id>` | bear → app, retained | `{"id":"<id>","online":1,"led":1}`; the broker sends `online:0` if the bear drops off |
+| `teddy/<pair>/cmd/<id>` | app → one bear | `{"cmd":"setup"}` forget WiFi and reboot into Bluetooth setup; `{"cmd":"ping"}` re-publish state |
+| `teddy/<pair>/meta/<id>` | app → app, retained | `{"name":"Ellie","species":"elephant","owner":"Kiran"}`; the animals ignore it |
+| `teddy/<pair>/links/<id>` | app → that animal, retained | `{"ids":["a1b2c3","d4e5f6"]}`: the animals its paw button triggers |
+
+### Setup over Bluetooth (same service as before, two new characteristics)
+
+| Characteristic | UUID | Use |
+|---|---|---|
+| SETUP | `0e7a1003-7edd-4bea-a000-5eed12345678` | write `ssid<TAB>password<TAB>zoocode`, `scan`, or `reset` |
+| INFO | `0e7a1004-7edd-4bea-a000-5eed12345678` | read `id=7c2a9f mode=setup wifi=none|fail|ok pair=…`; notifies `ok=saved` after a setup write and `scan=done n=4` after a scan |
+| NETS | `0e7a1005-7edd-4bea-a000-5eed12345678` | read after `scan=done`: `[{"s":"MyWiFi","r":-47,"l":1},…]` strongest first, `l` 1 = password needed |
 
 ### Safety behaviour (both versions)
 

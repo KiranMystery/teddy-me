@@ -5,7 +5,11 @@
   connects with Web Bluetooth and writes to two characteristics:
 
     MOTOR  write 1 = buzz, 0 = stop  (app re-sends 1 every 400 ms while held)
-    LED    write 1 = on,   0 = off   (notifies the app when it changes)
+    LED    write 0 = off, 1 = slow pulse ("breathing"), 2 = steady on
+           (notifies the app with the same value when it changes)
+
+  The pulse is done in software with the ESP32's PWM (LEDC) on the LED pin,
+  so the LED circuit is unchanged: GPIO 25 -> 220R -> LED -> GND.
 
   Wiring (see circuit.svg / circuit-led.svg):
     GPIO 25 -> 220R -> LED -> GND
@@ -31,6 +35,13 @@ const int MOTOR_PIN = 26;
 // Safety: if the phone stops saying "hold" for this long, the motor stops.
 const unsigned long MOTOR_TIMEOUT_MS = 1200;
 
+// LED pulse: one full breath (dark -> bright -> dark) takes this long.
+const unsigned long PULSE_PERIOD_MS = 3000;
+const int PWM_FREQ_HZ = 5000;   // well above anything the eye can see
+const int PWM_BITS    = 8;      // duty 0..255
+
+enum LedMode : uint8_t { LED_OFF = 0, LED_PULSE = 1, LED_STEADY = 2 };
+
 // These IDs must match the ones in app-ble.html
 #define SERVICE_UUID "0e7a1000-7edd-4bea-a000-5eed12345678"
 #define MOTOR_UUID   "0e7a1001-7edd-4bea-a000-5eed12345678"
@@ -41,21 +52,39 @@ BLEServer*         server   = nullptr;
 BLECharacteristic* motorChr = nullptr;
 BLECharacteristic* ledChr   = nullptr;
 
-bool ledOn   = false;
+LedMode ledMode = LED_OFF;
+unsigned long pulseStart = 0;
 bool motorOn = false;
 bool connected = false;
 bool restartAdvertising = false;
 unsigned long motorLastPing = 0;
 
-void setLed(bool on) {
-  ledOn = on;
-  digitalWrite(LED_PIN, on ? HIGH : LOW);
-  Serial.printf("LED %s (GPIO %d)\n", on ? "ON" : "off", LED_PIN);
+// Brightness 0..255, gamma-corrected so the fade looks even to the eye.
+void ledWrite(uint8_t level) {
+  uint32_t duty = ((uint32_t)level * level) / 255;
+  ledcWrite(LED_PIN, duty);
+}
+
+void setLed(LedMode mode) {
+  ledMode = mode;
+  const char* name = mode == LED_OFF ? "off" : mode == LED_PULSE ? "PULSE" : "ON";
+  Serial.printf("LED %s (GPIO %d)\n", name, LED_PIN);
+  if (mode == LED_PULSE) pulseStart = millis();
+  ledWrite(mode == LED_STEADY ? 255 : 0);   // pulse starts dark and breathes in
   if (ledChr) {
-    uint8_t v = on ? 1 : 0;
+    uint8_t v = (uint8_t)mode;
     ledChr->setValue(&v, 1);
     if (connected) ledChr->notify();
   }
+}
+
+// Called every loop: computes the breathing brightness while in pulse mode.
+void updatePulse() {
+  if (ledMode != LED_PULSE) return;
+  unsigned long t = (millis() - pulseStart) % PULSE_PERIOD_MS;
+  float phase = (float)t / (float)PULSE_PERIOD_MS;          // 0..1
+  float x = 0.5f - 0.5f * cosf(phase * 2.0f * PI);          // 0 -> 1 -> 0, smooth
+  ledWrite((uint8_t)(x * 255.0f));
 }
 
 void setMotor(bool on) {
@@ -82,7 +111,9 @@ class MotorCallbacks : public BLECharacteristicCallbacks {
 
 class LedCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic* c) {
-    setLed(firstByteIsOn(c));
+    if (c->getLength() == 0) return;
+    uint8_t v = c->getData()[0];
+    setLed(v == 0 ? LED_OFF : v == 2 ? LED_STEADY : LED_PULSE);  // 1 (or anything else) = pulse
   }
 };
 
@@ -103,10 +134,10 @@ void setup() {
   Serial.begin(115200);
   delay(200);
 
-  pinMode(LED_PIN, OUTPUT);
+  ledcAttach(LED_PIN, PWM_FREQ_HZ, PWM_BITS);   // PWM on the LED pin (ESP32 core 3.x API)
+  ledWrite(0);
   pinMode(MOTOR_PIN, OUTPUT);
   setMotor(false);
-  digitalWrite(LED_PIN, LOW);
 
   BLEDevice::init(DEVICE_NAME);
   server = BLEDevice::createServer();
@@ -127,7 +158,7 @@ void setup() {
   ledChr->addDescriptor(new BLE2902());
 
   svc->start();
-  setLed(false);
+  setLed(LED_OFF);
 
   BLEAdvertising* adv = BLEDevice::getAdvertising();
   adv->addServiceUUID(SERVICE_UUID);
@@ -138,8 +169,8 @@ void setup() {
   Serial.printf("Advertising as \"%s\"\n", DEVICE_NAME);
 
   // quick "hello" so you know it booted
-  setLed(true);  setMotor(true);  delay(150);
-  setLed(false); setMotor(false);
+  setLed(LED_STEADY); setMotor(true);  delay(150);
+  setLed(LED_OFF);    setMotor(false);
 }
 
 void loop() {
@@ -154,5 +185,7 @@ void loop() {
   if (motorOn && millis() - motorLastPing > MOTOR_TIMEOUT_MS) {
     setMotor(false);
   }
+
+  updatePulse();
   delay(10);
 }

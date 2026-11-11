@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teddy setup</title>
+<style>
+  :root { --bg:#fff7ef; --card:#fff; --ink:#3b2a1e; --muted:#8a6f5c; --accent:#d9715f; --ok:#3a9d5d; --bad:#c0392b; --line:#eadfd3; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1f1a17; --card:#2a2320; --ink:#f4e9dd; --muted:#bca391; --line:#3d332d; } }
+  * { box-sizing:border-box }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--ink); font:16px/1.4 system-ui,-apple-system,sans-serif; }
+  main { max-width:420px; margin:0 auto; display:grid; gap:14px }
+  h1 { margin:8px 0 0; font-size:22px } p { margin:0; color:var(--muted) }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; display:grid; gap:12px }
+  label { display:grid; gap:4px; font-size:14px; color:var(--muted) }
+  input { font:inherit; padding:12px; border:1px solid var(--line); border-radius:10px; background:transparent; color:var(--ink) }
+  button { font:inherit; font-weight:600; padding:14px; border:0; border-radius:12px; background:var(--accent); color:#fff; cursor:pointer }
+  button.secondary { background:transparent; color:var(--ink); border:1px solid var(--line) }
+  button:disabled { opacity:.5; cursor:default }
+  #status { font-size:14px } #status.ok{color:var(--ok)} #status.bad{color:var(--bad)}
+  code { background:rgba(127,127,127,.15); padding:2px 6px; border-radius:6px }
+  .row { display:flex; gap:8px } .row > * { flex:1 }
+</style>
+</head>
+<body>
+<main>
+  <h1>Add an animal</h1>
+  <p>Teach an animal your WiFi and give every animal in your zoo the same code so they can feel each other.</p>
+
+  <div class="card">
+    <button id="connect">1. Connect to the animal (Bluetooth)</button>
+    <div id="status">Not connected. The animal must be in setup mode (blue LED off, advertising as “Teddy”).</div>
+    <div id="info" hidden>Animal id: <code id="bearId">?</code> · <span id="bearInfo"></span></div>
+  </div>
+
+  <div class="card" id="form" hidden>
+    <label>WiFi network (2.4 GHz only)
+      <div class="row"><select id="nets"><option value="">Scanning…</option></select><button class="secondary" id="rescan" type="button">Rescan</button></div>
+    </label>
+    <label id="ssidRow" hidden>Network name <input id="ssid" autocomplete="off" autocapitalize="off" placeholder="type the WiFi name"></label>
+    <label>WiFi password <input id="pass" type="password" autocomplete="off"></label>
+    <label>Zoo code (same on every animal)
+      <div class="row"><input id="pair" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="secondary" id="gen" type="button">New</button></div>
+    </label>
+    <button id="send">2. Send to animal</button>
+    <button class="secondary" id="forget">Forget WiFi on this animal</button>
+  </div>
+
+  <div class="card" id="done" hidden>
+    <p>The animal is restarting and joining your WiFi (LED blinks while it connects, then one buzz).</p>
+    <p>Now open <a id="linkHref" href="app-link.html">your zoo</a> on this phone. Set up more animals with the <b>same zoo code</b>.</p>
+  </div>
+</main>
+<script>
+const SERVICE='0e7a1000-7edd-4bea-a000-5eed12345678', MOTOR='0e7a1001-7edd-4bea-a000-5eed12345678',
+      LED='0e7a1002-7edd-4bea-a000-5eed12345678', SETUP='0e7a1003-7edd-4bea-a000-5eed12345678',
+      INFO='0e7a1004-7edd-4bea-a000-5eed12345678', NETS='0e7a1005-7edd-4bea-a000-5eed12345678';
+const $ = id => document.getElementById(id);
+const enc = new TextEncoder(), dec = new TextDecoder();
+let device, setupChr, infoChr, netsChr, bearId = '';
+const OTHER = '__other__';
+
+function bars(rssi) { return rssi > -55 ? '●●●●' : rssi > -65 ? '●●●○' : rssi > -75 ? '●●○○' : '●○○○'; }
+function showNets(list) {
+  const saved = localStorage.getItem('teddy.ssid') || '';
+  const sel = $('nets');
+  sel.innerHTML = list.map(n => `<option value="${n.s.replace(/"/g, '&quot;')}">${n.s.replace(/</g, '&lt;')}  ${bars(n.r)}${n.l ? '' : '  (open)'}</option>`).join('')
+    + `<option value="${OTHER}">Other / type it in…</option>`;
+  if (!list.length) { sel.value = OTHER; } else if (list.some(n => n.s === saved)) sel.value = saved;
+  $('ssidRow').hidden = sel.value !== OTHER;
+}
+$('nets').onchange = () => { $('ssidRow').hidden = $('nets').value !== OTHER; if ($('nets').value === OTHER) $('ssid').focus(); };
+const chosenSsid = () => $('nets').value === OTHER ? $('ssid').value.trim() : $('nets').value;
+
+async function scan() {
+  if (!setupChr) return;
+  $('nets').innerHTML = '<option value="">Scanning… (about 3 s)</option>'; $('ssidRow').hidden = true;
+  try { await write(setupChr, enc.encode('scan')); } catch (e) { status('Scan request failed: ' + e.message, 'bad'); showNets([]); }
+}
+async function readNets() {
+  try { const list = JSON.parse(dec.decode(await netsChr.readValue())); showNets(list); status('Connected to animal ' + bearId + '. ' + list.length + ' network(s) found.', 'ok'); }
+  catch (e) { showNets([]); status('Could not read the network list: ' + e.message, 'bad'); }
+}
+$('rescan').onclick = scan;
+
+function status(msg, cls='') { $('status').textContent = msg; $('status').className = cls; }
+function genCode() { const a='abcdefghjkmnpqrstuvwxyz23456789'; let s=''; for (let i=0;i<8;i++) s+=a[Math.floor(Math.random()*a.length)]; return s; }
+
+$('pair').value = localStorage.getItem('teddy.pair') || genCode();
+$('ssid').value = localStorage.getItem('teddy.ssid') || '';
+$('gen').onclick = () => $('pair').value = genCode();
+
+async function write(chr, bytes) {
+  if (chr.properties.writeWithoutResponse && chr.writeValueWithoutResponse) return chr.writeValueWithoutResponse(bytes);
+  if (chr.writeValueWithResponse) return chr.writeValueWithResponse(bytes);
+  return chr.writeValue(bytes);
+}
+
+$('connect').onclick = async () => {
+  if (!navigator.bluetooth) { status('This browser has no Web Bluetooth. Use Chrome (Android/Mac/Windows) or Bluefy on iPhone.', 'bad'); return; }
+  try {
+    status('Choose “Teddy” in the list…');
+    device = await navigator.bluetooth.requestDevice({ filters:[{ services:[SERVICE] }] });
+    device.addEventListener('gattserverdisconnected', () => { status('Disconnected.', 'bad'); $('form').hidden = true; });
+    const gatt = await device.gatt.connect();
+    const svc = await gatt.getPrimaryService(SERVICE);
+    setupChr = await svc.getCharacteristic(SETUP);
+    infoChr  = await svc.getCharacteristic(INFO);
+    try { netsChr = await svc.getCharacteristic(NETS); } catch (e) { netsChr = null; }
+    const info = dec.decode(await infoChr.readValue());
+    bearId = (info.match(/id=(\w+)/) || [])[1] || '?';
+    $('bearId').textContent = bearId; $('bearInfo').textContent = info.replace(/id=\w+\s*/, '');
+    $('info').hidden = false; $('form').hidden = false;
+    status('Connected to animal ' + bearId + '.', 'ok');
+    try { await infoChr.startNotifications(); infoChr.addEventListener('characteristicvaluechanged', e => {
+      const v = dec.decode(e.target.value);
+      if (v.startsWith('ok=saved')) finish();
+      else if (v.startsWith('scan=done')) readNets();
+      else if (v.startsWith('scan=failed')) { showNets([]); status('Scan failed, type the network name.', 'bad'); }
+      else if (v.startsWith('error')) status('Animal said: ' + v, 'bad');
+    }); } catch (e) {}
+    if (netsChr) scan(); else showNets([]);
+  } catch (e) { status('Connect failed: ' + e.message, 'bad'); }
+};
+
+function finish() {
+  localStorage.setItem('teddy.pair', $('pair').value.trim());
+  localStorage.setItem('teddy.ssid', chosenSsid());
+  localStorage.setItem('teddy.myBear', bearId);
+  $('linkHref').href = 'app-link.html?pair=' + encodeURIComponent($('pair').value.trim()) + '&me=' + bearId;
+  $('form').hidden = true; $('done').hidden = false;
+  status('Saved. Animal ' + bearId + ' is rebooting.', 'ok');
+}
+
+$('send').onclick = async () => {
+  const ssid = chosenSsid(), pass = $('pass').value, pair = $('pair').value.trim();
+  if (!ssid) { status('WiFi name is empty.', 'bad'); return; }
+  if (pair.length < 4) { status('Pair code needs at least 4 characters.', 'bad'); return; }
+  if (/\t/.test(ssid + pass + pair)) { status('No tabs allowed.', 'bad'); return; }
+  $('send').disabled = true;
+  try {
+    status('Sending…');
+    await write(setupChr, enc.encode(ssid + '\t' + pass + '\t' + pair));
+    // The bear replies on INFO (notify); if that never comes, assume it rebooted.
+    setTimeout(() => { if (!$('form').hidden) finish(); }, 2500);
+  } catch (e) { status('Write failed: ' + e.message, 'bad'); $('send').disabled = false; }
+};
+
+$('forget').onclick = async () => {
+  try { await write(setupChr, enc.encode('reset')); status('WiFi forgotten on animal ' + bearId + '.', 'ok'); }
+  catch (e) { status('Write failed: ' + e.message, 'bad'); }
+};
+</script>
+</body>
+</html>
