@@ -188,10 +188,28 @@ Then `./flash.sh ble` or `./flash.sh wifi`, add `monitor` to watch the serial ou
      (a browser with Bluetooth) and open the page in that.
    - To use it on the phone the page needs hosting somewhere with https
      (GitHub Pages, Netlify…). Nothing in it is secret, so a public host is fine.
-3. Tap **Connect to bear**, pick *Teddy* in the list. Then hold the paw / tap the light.
+3. Tap **Connect to bear**, pick *Teddy* in the list. Then hold the paw / flip the light switch.
 
 No pairing needed; the bear accepts one phone at a time and stops the motor the
 moment the connection drops.
+
+The page is a small IoT-style app: a device card with the connection state (a
+beating heart while connected), the hold-to-buzz paw, a light switch that
+follows the bear's own LED state, and a settings sheet (theme, device info).
+On a phone, *Share → Add to Home Screen* installs it with the icon and a
+full-screen window (`brand/manifest.webmanifest`).
+
+### Branding
+
+The page is white-labelled. The IoME look lives in exactly two places:
+
+- `brand/` – wordmark, heart, app icon (currently a placeholder bear) and the
+  web app manifest; see [`brand/README.md`](brand/README.md).
+- the `BRAND TOKENS` block at the top of the `<style>` in `app-ble.html` –
+  colours, radii and fonts as CSS custom properties, light and dark.
+
+Swap those and nothing else to re-brand it. The Bluetooth code below the
+styles is unchanged by any of this.
 
 ### BLE service (for building your own app later)
 
