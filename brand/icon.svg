@@ -1,33 +1,41 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Teddy">
   <title>Teddy – plush elephant</title>
-  <!-- Flat rendition of the plush elephant (blue-grey fur, cream inner ears, pink blush) on the brand ground,
-       proportions taken from the product photo: tall oval ears high on the head, long fat trunk from the brow. -->
+  <!-- Flat rendition of the whole plush elephant (blue-grey fur, cream inner ears, pink blush) on the brand ground,
+       proportions from the product photo: big head with tall oval ears, long trunk to the belly, stubby arms and feet. -->
   <rect width="512" height="512" rx="112" fill="#DB9558"/>
   <g fill="#A7B1C3">
-    <ellipse cx="104" cy="218" rx="76" ry="104"/>
-    <ellipse cx="408" cy="218" rx="76" ry="104"/>
+    <ellipse cx="92" cy="190" rx="64" ry="90"/>
+    <ellipse cx="420" cy="190" rx="64" ry="90"/>
   </g>
   <g fill="#F2EADA">
-    <ellipse cx="92" cy="222" rx="44" ry="74"/>
-    <ellipse cx="420" cy="222" rx="44" ry="74"/>
+    <ellipse cx="82" cy="194" rx="36" ry="62"/>
+    <ellipse cx="430" cy="194" rx="36" ry="62"/>
   </g>
-  <circle cx="256" cy="246" r="152" fill="#A7B1C3"/>
-  <path d="M256 250 Q250 360 268 448" stroke="#8C98AC" stroke-width="80" stroke-linecap="round" fill="none"/>
-  <path d="M254 250 Q248 358 264 442" stroke="#A7B1C3" stroke-width="70" stroke-linecap="round" fill="none"/>
-  <g stroke="#8C98AC" stroke-width="7" stroke-linecap="round" fill="none">
-    <path d="M226 336 q26 9 52 0"/>
-    <path d="M230 376 q26 9 52 0"/>
+  <g fill="#A7B1C3">
+    <ellipse cx="140" cy="362" rx="32" ry="50"/>
+    <ellipse cx="372" cy="362" rx="32" ry="50"/>
+    <ellipse cx="256" cy="392" rx="112" ry="100"/>
+    <ellipse cx="198" cy="464" rx="46" ry="26"/>
+    <ellipse cx="314" cy="464" rx="46" ry="26"/>
+  </g>
+  <ellipse cx="256" cy="412" rx="64" ry="54" fill="#B5BECE"/>
+  <circle cx="256" cy="210" r="128" fill="#A7B1C3"/>
+  <path d="M256 214 Q250 300 268 378" stroke="#8C98AC" stroke-width="68" stroke-linecap="round" fill="none"/>
+  <path d="M254 214 Q248 298 264 372" stroke="#A7B1C3" stroke-width="58" stroke-linecap="round" fill="none"/>
+  <g stroke="#8C98AC" stroke-width="6" stroke-linecap="round" fill="none">
+    <path d="M230 288 q22 8 44 0"/>
+    <path d="M234 322 q22 8 44 0"/>
   </g>
   <g fill="#E9B6BA">
-    <ellipse cx="168" cy="286" rx="22" ry="15"/>
-    <ellipse cx="344" cy="286" rx="22" ry="15"/>
+    <ellipse cx="184" cy="244" rx="19" ry="13"/>
+    <ellipse cx="328" cy="244" rx="19" ry="13"/>
   </g>
   <g fill="#1C1714">
-    <circle cx="194" cy="244" r="13"/>
-    <circle cx="318" cy="244" r="13"/>
+    <circle cx="204" cy="206" r="11"/>
+    <circle cx="308" cy="206" r="11"/>
   </g>
   <g fill="#FFFFFF">
-    <circle cx="199" cy="239" r="4"/>
-    <circle cx="323" cy="239" r="4"/>
+    <circle cx="208" cy="202" r="3.5"/>
+    <circle cx="312" cy="202" r="3.5"/>
   </g>
 </svg>
