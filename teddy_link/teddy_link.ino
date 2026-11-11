@@ -84,6 +84,29 @@ Preferences prefs;
 RunMode  runMode = MODE_SETUP;
 String   bearId, ssid, pass, pair;
 bool     wifiFailed = false;
+int      wifiReason = 0;              // last disconnect reason from the hub
+unsigned long lastWifiRetry = 0;
+const unsigned long WIFI_RETRY_MS = 60000;   // in setup mode with saved WiFi: try again every minute
+
+const char* wifiReasonText(int r) {
+  switch (r) {
+    case 2:   return "auth expired";
+    case 15:  return "handshake timeout (wrong password?)";
+    case 201: return "network not found (2.4 GHz off, or out of range)";
+    case 202: return "auth failed (wrong password)";
+    case 203: return "association failed";
+    case 204: return "handshake timeout";
+    case 205: return "connection failed";
+    case 208: return "association timeout";
+    default:  return "";
+  }
+}
+void onWifiEvent(WiFiEvent_t ev, WiFiEventInfo_t info) {
+  if (ev == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
+    wifiReason = info.wifi_sta_disconnected.reason;
+    Serial.printf("WiFi disconnected, reason %d %s\n", wifiReason, wifiReasonText(wifiReason));
+  }
+}
 
 LedMode ledMode = LED_OFF;
 unsigned long pulseStart = 0;
@@ -210,7 +233,7 @@ void clearSettings() {
 
 String infoString() {
   String s = "id=" + bearId + " mode=" + (runMode == MODE_LINK ? "link" : "setup");
-  s += " wifi=" + String(ssid.length() == 0 ? "none" : wifiFailed ? "fail" : "ok");
+  s += " wifi=" + String(ssid.length() == 0 ? "none" : wifiFailed ? ("fail:" + String(wifiReason)) : "ok");
   s += " pair=" + pair;
   return s;
 }
@@ -253,7 +276,7 @@ class SetupCallbacks : public BLECharacteristicCallbacks {
     code.trim();
     if (code.length() < 4) { infoChr->setValue("error=pair"); return; }
     saveSettings(s, p, code);
-    Serial.printf("setup: ssid=\"%s\" pair=%s, rebooting into LINK mode\n", s.c_str(), code.c_str());
+    Serial.printf("setup: ssid=\"%s\" password=%d chars pair=%s, rebooting into LINK mode\n", s.c_str(), p.length(), code.c_str());
     infoChr->setValue("ok=saved id=" + bearId);
     if (connected) infoChr->notify();
     rebootRequested = true;   // done in loop(), after the notify gets out
@@ -414,6 +437,8 @@ bool mqttConnect() {
 
 bool startLinkMode() {
   Serial.printf("LINK mode: joining WiFi \"%s\"...\n", ssid.c_str());
+  wifiReason = 0;
+  WiFi.onEvent(onWifiEvent);
   WiFi.mode(WIFI_STA);
   WiFi.setHostname(("teddy-" + bearId).c_str());
   WiFi.begin(ssid.c_str(), pass.c_str());
@@ -425,7 +450,8 @@ bool startLinkMode() {
   }
   ledWrite(0);
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("WiFi failed. Falling back to SETUP mode (Bluetooth).");
+    Serial.printf("WiFi failed (status %d, reason %d %s). Falling back to SETUP mode (Bluetooth).\n",
+                  WiFi.status(), wifiReason, wifiReasonText(wifiReason));
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);
     return false;
@@ -464,6 +490,7 @@ void setup() {
   loadSettings();
   Serial.printf("Teddy %s, pair=%s\n", bearId.c_str(), pair.length() ? pair.c_str() : "(none)");
 
+  lastWifiRetry = millis();
   bool linked = false;
   if (ssid.length() > 0) {
     linked = startLinkMode();
@@ -479,6 +506,13 @@ void setup() {
 void loop() {
   if (runMode == MODE_SETUP) {
     if (rebootRequested) { delay(500); ESP.restart(); }
+    // Saved WiFi that failed (hub rebooting, password just fixed...): retry by rebooting,
+    // but never while a phone is connected and setting things up.
+    if (wifiFailed && !connected && millis() - lastWifiRetry > WIFI_RETRY_MS) {
+      lastWifiRetry = millis();
+      Serial.println("retrying saved WiFi...");
+      delay(100); ESP.restart();
+    }
     if (restartAdvertising) {
       restartAdvertising = false;
       delay(300);
