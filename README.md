@@ -190,8 +190,10 @@ Then `./flash.sh ble` or `./flash.sh wifi`, add `monitor` to watch the serial ou
      folder run `python3 -m http.server 8000` and open http://localhost:8000/app-ble.html
    - **iPhone:** Safari has no Web Bluetooth. Install the free **Bluefy** app
      (a browser with Bluetooth) and open the page in that.
-   - To use it on the phone the page needs hosting somewhere with https
-     (GitHub Pages, Netlify…). Nothing in it is secret, so a public host is fine.
+   - On the phone, use the hosted copy (Bluetooth needs https):
+     **https://kiranmystery.github.io/teddy-me/app-ble.html** and
+     **https://kiranmystery.github.io/teddy-me/zoo.html** (GitHub Pages, from
+     this repo; *Settings → Pages* picks the branch it serves).
 3. Tap **Connect to bear**, pick *Teddy* in the list. Then hold the paw / flip the light switch.
 
 No pairing needed; the bear accepts one phone at a time and stops the motor the
