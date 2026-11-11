@@ -23,6 +23,12 @@
      and listens for  teddy/<pair>/cmd/<id>  with {"cmd":"setup"} to forget
      WiFi and go back to SETUP mode.
 
+     PAW BUTTON (GPIO 27 to GND, internal pull-up): while squeezed, the bear
+     sends {"from":"<me>","to":"<id>","motor":1} every 400 ms to every id in
+     its link list, and motor 0 on release. The link list is whatever the app
+     last published (retained) on  teddy/<pair>/links/<id>  as {"ids":[...]}.
+     The LED goes steady while the paw is held, as feedback.
+
   Bear id = last 3 bytes of the WiFi MAC, e.g. "7c2a9f". Read it over
   Bluetooth from the INFO characteristic, or from the serial monitor.
 
@@ -43,6 +49,7 @@ const char* DEVICE_NAME = "Teddy";
 
 const int LED_PIN   = 25;
 const int MOTOR_PIN = 26;
+const int PAW_PIN   = 27;   // push button to GND; internal pull-up
 
 const unsigned long MOTOR_TIMEOUT_MS = 1200;   // stop if "hold" messages stop
 const unsigned long PULSE_PERIOD_MS  = 3000;   // one slow breath
@@ -57,13 +64,17 @@ const int   MQTT_PORT = 1883;
 const unsigned long WIFI_TIMEOUT_MS   = 20000; // then fall back to SETUP mode
 const unsigned long MQTT_RETRY_MS     = 5000;
 const unsigned long STATE_PERIOD_MS   = 30000; // heartbeat / presence
+const unsigned long PAW_RESEND_MS     = 400;   // while held, re-send to linked bears
+const unsigned long PAW_DEBOUNCE_MS   = 30;
+const int MAX_LINKS = 8;
 
 // Must match setup.html and app-ble.html
 #define SERVICE_UUID "0e7a1000-7edd-4bea-a000-5eed12345678"
 #define MOTOR_UUID   "0e7a1001-7edd-4bea-a000-5eed12345678"
 #define LED_UUID     "0e7a1002-7edd-4bea-a000-5eed12345678"
 #define SETUP_UUID   "0e7a1003-7edd-4bea-a000-5eed12345678"  // write "ssid\tpass\tpair" or "reset"
-#define INFO_UUID    "0e7a1004-7edd-4bea-a000-5eed12345678"  // read: "id=xxxxxx mode=setup wifi=none|fail pair=..."
+#define INFO_UUID    "0e7a1004-7edd-4bea-a000-5eed12345678"  // read: "id=xxxxxx mode=setup wifi=none|fail pair=..."; notifies "scan=done n=8"
+#define NETS_UUID    "0e7a1005-7edd-4bea-a000-5eed12345678"  // read after a scan: [{"s":"ssid","r":-50,"l":1},...] strongest first
 // ------------------------------
 
 enum LedMode : uint8_t { LED_OFF = 0, LED_PULSE = 1, LED_STEADY = 2 };
@@ -85,6 +96,8 @@ BLECharacteristic* motorChr = nullptr;
 BLECharacteristic* ledChr   = nullptr;
 BLECharacteristic* setupChr = nullptr;
 BLECharacteristic* infoChr  = nullptr;
+BLECharacteristic* netsChr  = nullptr;
+bool scanRequested = false, scanning = false;
 bool connected = false;
 bool restartAdvertising = false;
 bool rebootRequested = false;
@@ -92,9 +105,14 @@ bool rebootRequested = false;
 // MQTT (link mode)
 WiFiClient   net;
 PubSubClient mqtt(net);
-String topicTouch, topicState, topicCmd;
+String topicTouch, topicState, topicCmd, topicLinks;
 unsigned long lastMqttTry = 0, lastState = 0;
 bool stateDirty = true;
+
+// paw button + links
+String links[MAX_LINKS]; int nLinks = 0;
+bool pawHeld = false, pawRaw = false;
+unsigned long pawChangedAt = 0, pawLastSend = 0;
 
 // ---------- LED / motor ----------
 void ledWrite(uint8_t level) {                // gamma corrected 0..255
@@ -116,6 +134,7 @@ void setLed(LedMode mode) {
 }
 
 void updatePulse() {
+  if (pawHeld) { ledWrite(255); return; }        // feedback while squeezed
   if (ledMode != LED_PULSE) return;
   unsigned long t = (millis() - pulseStart) % PULSE_PERIOD_MS;
   float x = 0.5f - 0.5f * cosf((float)t / (float)PULSE_PERIOD_MS * 2.0f * PI);
@@ -149,6 +168,23 @@ String jsonStr(const String& s, const char* key) {
   int q1 = s.indexOf('"', i); if (q1 < 0) return "";
   int q2 = s.indexOf('"', q1 + 1); if (q2 < 0) return "";
   return s.substring(q1 + 1, q2);
+}
+
+// {"ids":["a1b2c3","d4e5f6"]} -> links[]
+void parseLinks(const String& s) {
+  nLinks = 0;
+  int i = s.indexOf("\"ids\"");
+  if (i < 0) return;
+  i = s.indexOf('[', i); int end = s.indexOf(']', i);
+  if (i < 0 || end < 0) return;
+  while (nLinks < MAX_LINKS) {
+    int q1 = s.indexOf('"', i); if (q1 < 0 || q1 > end) break;
+    int q2 = s.indexOf('"', q1 + 1); if (q2 < 0 || q2 > end) break;
+    String id = s.substring(q1 + 1, q2);
+    if (id.length() && id != bearId) links[nLinks++] = id;
+    i = q2 + 1;
+  }
+  Serial.printf("links: %d\n", nLinks);
 }
 
 // ---------- settings ----------
@@ -199,6 +235,7 @@ class SetupCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic* c) {
     String v = String((const char*)c->getData()).substring(0, c->getLength());
     v.trim();
+    if (v == "scan") { scanRequested = true; return; }   // done in loop()
     if (v == "reset") {
       clearSettings();
       Serial.println("WiFi settings cleared");
@@ -258,6 +295,9 @@ void startSetupMode() {
   infoChr->setValue(infoString().c_str());
   infoChr->addDescriptor(new BLE2902());
 
+  netsChr = svc->createCharacteristic(NETS_UUID, BLECharacteristic::PROPERTY_READ);
+  netsChr->setValue("[]");
+
   svc->start();
   setLed(LED_OFF);
 
@@ -268,6 +308,55 @@ void startSetupMode() {
   adv->setMinPreferred(0x12);
   BLEDevice::startAdvertising();
   Serial.printf("SETUP mode: advertising as \"%s\" (%s)\n", DEVICE_NAME, infoString().c_str());
+}
+
+// ---------- WiFi scan (for the setup page's network list) ----------
+static String jsonEscape(const String& in) {
+  String o; o.reserve(in.length() + 4);
+  for (char c : in) { if (c == '"' || c == '\\') o += '\\'; if ((uint8_t)c >= 0x20) o += c; }
+  return o;
+}
+
+void startScan() {
+  if (scanning) return;
+  if (runMode == MODE_SETUP) WiFi.mode(WIFI_STA);     // radio on, not connected; fine next to BLE
+  WiFi.scanNetworks(true /*async*/, false /*hidden*/);
+  scanning = true;
+  Serial.println("WiFi scan started");
+}
+
+void finishScanIfDone() {
+  if (!scanning) return;
+  int n = WiFi.scanComplete();
+  if (n == WIFI_SCAN_RUNNING) return;
+  scanning = false;
+  if (n < 0) {
+    Serial.println("WiFi scan failed");
+    if (infoChr) { infoChr->setValue("scan=failed"); if (connected) infoChr->notify(); }
+    return;
+  }
+  // strongest first, one entry per SSID, at most 12 / ~480 bytes (one BLE long read)
+  int idx[64]; int m = n < 64 ? n : 64;
+  for (int i = 0; i < m; i++) idx[i] = i;
+  for (int i = 1; i < m; i++) { int k = idx[i], j = i; while (j > 0 && WiFi.RSSI(idx[j-1]) < WiFi.RSSI(k)) { idx[j] = idx[j-1]; j--; } idx[j] = k; }
+  String out = "["; int count = 0;
+  for (int i = 0; i < m && count < 12; i++) {
+    String ssid = WiFi.SSID(idx[i]);
+    if (ssid.length() == 0) continue;
+    bool dup = false;
+    for (int j = 0; j < i; j++) if (WiFi.SSID(idx[j]) == ssid) { dup = true; break; }
+    if (dup) continue;
+    String e = String(count ? "," : "") + "{\"s\":\"" + jsonEscape(ssid) + "\",\"r\":" + String(WiFi.RSSI(idx[i])) +
+               ",\"l\":" + (WiFi.encryptionType(idx[i]) == WIFI_AUTH_OPEN ? "0" : "1") + "}";
+    if (out.length() + e.length() > 480) break;
+    out += e; count++;
+    Serial.printf("  %3d dBm  %s%s\n", WiFi.RSSI(idx[i]), ssid.c_str(), WiFi.encryptionType(idx[i]) == WIFI_AUTH_OPEN ? "" : " (locked)");
+  }
+  out += "]";
+  WiFi.scanDelete();
+  Serial.printf("WiFi scan: %d network(s), sending %d\n", n, count);
+  if (netsChr) netsChr->setValue(out.c_str());
+  if (infoChr) { infoChr->setValue(("scan=done n=" + String(count)).c_str()); if (connected) infoChr->notify(); }
 }
 
 // ---------- MQTT ----------
@@ -293,6 +382,8 @@ void onMqtt(char* topic, byte* payload, unsigned int len) {
     int l = jsonInt(msg, "led", -1);
     if (m >= 0) motorPing(m != 0);
     if (l >= 0) setLed(ledModeFrom(l));
+  } else if (t == topicLinks) {
+    parseLinks(msg);
   } else if (t == topicCmd) {
     String cmd = jsonStr(msg, "cmd");
     if (cmd == "setup") {
@@ -312,6 +403,7 @@ bool mqttConnect() {
   if (mqtt.connect(clientId.c_str(), topicState.c_str(), 0, true, will.c_str())) {
     mqtt.subscribe(topicTouch.c_str());
     mqtt.subscribe(topicCmd.c_str());
+    mqtt.subscribe(topicLinks.c_str());
     Serial.printf("MQTT connected to %s as %s\n", MQTT_HOST, clientId.c_str());
     publishState();
     return true;
@@ -344,6 +436,7 @@ bool startLinkMode() {
   topicTouch = "teddy/" + pair + "/touch";
   topicState = "teddy/" + pair + "/state/" + bearId;
   topicCmd   = "teddy/" + pair + "/cmd/" + bearId;
+  topicLinks = "teddy/" + pair + "/links/" + bearId;
   mqtt.setServer(MQTT_HOST, MQTT_PORT);
   mqtt.setCallback(onMqtt);
   mqtt.setBufferSize(512);
@@ -360,6 +453,7 @@ void setup() {
   ledWrite(0);
   pinMode(MOTOR_PIN, OUTPUT);
   setMotor(false);
+  pinMode(PAW_PIN, INPUT_PULLUP);
 
   uint8_t mac[6];
   WiFi.macAddress(mac);
@@ -407,9 +501,35 @@ void loop() {
     String line = Serial.readStringUntil('\n'); line.trim();
     if (line == "reset") { clearSettings(); Serial.println("cleared, rebooting"); delay(200); ESP.restart(); }
     else if (line == "info") Serial.println(infoString());
+    else if (line == "scan") scanRequested = true;
   }
+  if (scanRequested) { scanRequested = false; startScan(); }
+  finishScanIfDone();
 
   if (motorOn && millis() - motorLastPing > MOTOR_TIMEOUT_MS) setMotor(false);
+  updatePaw();
   updatePulse();
   delay(10);
+}
+
+// Paw button: debounce, then tell every linked bear while held.
+void sendPaw(bool on) {
+  if (runMode != MODE_LINK || !mqtt.connected()) return;
+  for (int i = 0; i < nLinks; i++) {
+    String m = "{\"from\":\"" + bearId + "\",\"to\":\"" + links[i] + "\",\"motor\":" + (on ? "1" : "0") + "}";
+    mqtt.publish(topicTouch.c_str(), m.c_str());
+  }
+}
+
+void updatePaw() {
+  bool raw = digitalRead(PAW_PIN) == LOW;
+  if (raw != pawRaw) { pawRaw = raw; pawChangedAt = millis(); }
+  if (raw != pawHeld && millis() - pawChangedAt > PAW_DEBOUNCE_MS) {
+    pawHeld = raw;
+    Serial.printf("paw %s -> %d linked bear(s)\n", pawHeld ? "squeezed" : "released", nLinks);
+    sendPaw(pawHeld);
+    pawLastSend = millis();
+    if (!pawHeld) ledWrite(ledMode == LED_STEADY ? 255 : 0);   // restore the light
+  }
+  if (pawHeld && millis() - pawLastSend > PAW_RESEND_MS) { sendPaw(true); pawLastSend = millis(); }
 }
