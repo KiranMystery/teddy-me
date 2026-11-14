@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:material_ui/material_ui.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -85,9 +86,10 @@ TextStyle display({double size = 17, FontWeight weight = FontWeight.w600, Color?
 TextStyle body({double size = 16, FontWeight weight = FontWeight.w400, Color? color, double? height, double? letterSpacing}) =>
     GoogleFonts.workSans(fontSize: size, fontWeight: weight, color: color, height: height ?? 1.45, letterSpacing: letterSpacing);
 
-const monoFamily = 'Menlo';
+/// Menlo on Apple platforms; Android has none of the Apple faces, so ask for its generic monospace.
+String get monoFamily => defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS ? 'Menlo' : 'monospace';
 TextStyle mono({double size = 15, Color? color, double? letterSpacing, FontWeight? weight}) => TextStyle(
-    fontFamily: monoFamily, fontFamilyFallback: const ['Courier', 'monospace'], fontSize: size, color: color, letterSpacing: letterSpacing, fontWeight: weight);
+    fontFamily: monoFamily, fontFamilyFallback: const ['Menlo', 'monospace'], fontSize: size, color: color, letterSpacing: letterSpacing, fontWeight: weight);
 
 ThemeData buildTheme(Brightness brightness) {
   final b = brightness == Brightness.dark ? Brand.dark : Brand.light;
