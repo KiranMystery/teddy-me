@@ -6,6 +6,7 @@ import '../model/animal.dart';
 import '../model/zoo_model.dart';
 import '../services/ble_setup.dart';
 import '../theme.dart';
+import '../widgets/paw.dart';
 import '../widgets/ui.dart';
 
 /// Add an animal over Bluetooth, four steps (see AddController).
@@ -15,7 +16,7 @@ class AddAnimalScreen extends StatefulWidget {
   State<AddAnimalScreen> createState() => _AddAnimalScreenState();
 }
 
-class _AddAnimalScreenState extends State<AddAnimalScreen> {
+class _AddAnimalScreenState extends State<AddAnimalScreen> with WidgetsBindingObserver {
   late final AddController add = AddController(context.read<ZooModel>());
   final _ssid = TextEditingController();
   final _pass = TextEditingController();
@@ -28,7 +29,14 @@ class _AddAnimalScreenState extends State<AddAnimalScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     add.addListener(_onStep);
+  }
+
+  /// Phone locked or app switched while buzzing over Bluetooth: stop at once.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) add.holdStop();
   }
 
   void _onStep() {
@@ -46,6 +54,7 @@ class _AddAnimalScreenState extends State<AddAnimalScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     add.removeListener(_onStep);
     add.dispose();
     for (final c in [_ssid, _pass, _pair, _name, _owner]) {
@@ -60,6 +69,7 @@ class _AddAnimalScreenState extends State<AddAnimalScreen> {
       listenable: add,
       builder: (context, _) {
         final b = Brand.of(context);
+        if (add.bleOnly) return _blePanel(b);
         return Screen(
           top: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             BackLink(onTap: () => context.pop()),
@@ -91,7 +101,7 @@ class _AddAnimalScreenState extends State<AddAnimalScreen> {
         Text.rich(TextSpan(children: [
           TextSpan(text: 'Switch it on. While it is not set up yet it shows itself over Bluetooth as ', style: body(size: 15, color: b.mute)),
           TextSpan(text: 'Teddy', style: body(size: 15, weight: FontWeight.w600, color: b.mute)),
-          TextSpan(text: '.', style: body(size: 15, color: b.mute)),
+          TextSpan(text: '. Once connected you can put it on your WiFi, or just use it over Bluetooth from this phone.', style: body(size: 15, color: b.mute)),
         ])),
       ),
       if (!add.bleAvailable)
@@ -314,10 +324,71 @@ class _AddAnimalScreenState extends State<AddAnimalScreen> {
     ];
   }
 
+  /// Bluetooth-only control: the animal stays in setup mode, this phone drives
+  /// its paw and light directly (same characteristics as app-ble.html).
+  Widget _blePanel(Brand b) {
+    final live = add.canControl;
+    final name = 'Teddy ${add.id}';
+    return Screen(
+      top: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        BackLink(label: 'Back', onTap: add.backToChoice),
+        Tag('Bluetooth', mine: false),
+      ]),
+      bottom: Column(mainAxisSize: MainAxisSize.min, children: [
+        Btn('Put it on WiFi instead', kind: BtnKind.secondary, onPressed: add.chooseWifi),
+        const SizedBox(height: 4),
+        Btn('Disconnect', kind: BtnKind.quiet, onPressed: () => context.pop()),
+      ]),
+      children: [
+        Row(children: [
+          const Avatar('elephant', size: 72),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(name, style: display(size: 26, color: b.ink, height: 1.15)),
+              const SizedBox(height: 2),
+              Sub('Bluetooth only · not on WiFi · works while this phone is near'),
+              const SizedBox(height: 2),
+              StatusRow(live ? 'connected over Bluetooth' : 'Bluetooth dropped', on: live, bad: !live),
+            ]),
+          ),
+        ]),
+        Column(children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: PawButton(on: add.holding, enabled: live, onDown: add.holdStart, onUp: add.holdStop),
+          ),
+          const SizedBox(height: 6),
+          Sub(add.holding ? '$name is buzzing · let go to stop' : live ? '$name buzzes for as long as you hold' : 'connect again from the previous screen', align: TextAlign.center),
+        ]),
+        Card22(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Row(children: [
+              Icon(Icons.lightbulb_outline_rounded, size: 28, color: add.led != 0 ? b.brand : b.mute),
+              const SizedBox(width: 12),
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const H2('Light'), Sub(ledNames[add.led.clamp(0, 2)])]),
+            ]),
+            const SizedBox(height: 12),
+            Seg<int>(value: add.led.clamp(0, 2), enabled: live, items: const [(0, 'Off'), (1, 'Pulse'), (2, 'Steady')], onChanged: add.setLed),
+          ]),
+        ),
+        const Sub('Without WiFi the animal is not in any zoo: no links, no other phones. Put it on WiFi later from here or from the zoo.'),
+      ],
+    );
+  }
+
   Widget? _bottom(Brand b) {
     switch (add.step) {
       case 1:
         if (!add.bleAvailable) return null;
+        if (add.connected && add.id.isNotEmpty) {
+          return Column(mainAxisSize: MainAxisSize.min, children: [
+            Btn('Put it on your WiFi', onPressed: add.chooseWifi),
+            const SizedBox(height: 10),
+            Btn('Use over Bluetooth only', kind: BtnKind.secondary, onPressed: add.canControl ? add.chooseBleOnly : null),
+          ]);
+        }
         return Btn(add.scanningBle ? 'Looking…' : 'Connect over Bluetooth', onPressed: add.scanningBle || add.connected ? null : add.startBleScan);
       case 2:
         return null;

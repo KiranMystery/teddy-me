@@ -12,7 +12,8 @@ reference; when the two disagree, `zoo.html` wins.
 | **Paw triggers** | Tick the animals this paw reaches; Save publishes the retained `links/<id>` |
 | **Settings** | Your name, theme (Auto / Light / Dark), zoo code as a QR with a share sheet, switch zoo, broker, leave zoo |
 | **Join** | Landing for `https://iome.uk/zoo/<code>` (and `teddyzoo://zoo/<code>`, `…?join=<code>`): previews the zoo, one tap joins |
-| **Add an animal** | Four steps over Bluetooth LE: find → WiFi picker (the animal scans; bars, lock, Other, show/hide password, zoo code with New) → joining (waits for `state/<id>` online; 15 s "Continue without waiting", 30 s help + "Connect again over Bluetooth") → name / species / owner. The WiFi failure reason from `INFO` (`wifi=fail:<n>`) is shown on the found card, in the status line and under the password |
+| **Add an animal** | Four steps over Bluetooth LE: find (then choose **Put it on your WiFi** or **Use over Bluetooth only**) → WiFi picker (the animal scans; bars, lock, Other, show/hide password, zoo code with New) → joining (waits for `state/<id>` online; 15 s "Continue without waiting", 30 s help + "Connect again over Bluetooth") → name / species / owner. The WiFi failure reason from `INFO` (`wifi=fail:<n>`) is shown on the found card, in the status line and under the password |
+| **Bluetooth only** | From step 1 after connecting: the animal stays in setup mode and this phone drives its paw (MOTOR `0e7a1001`, 1 every 400 ms, 0 on release) and light (LED `0e7a1002`, 0/1/2 with notify) directly, like `app-ble.html`. No zoo, no links; "Put it on WiFi instead" goes to step 2 |
 
 Protocol details (BLE UUIDs, MQTT topics, payloads) are in the
 [main README](../README.md#mqtt-topics-pair-is-the-pair-code-id-the-6-hex-bear-id).
@@ -178,9 +179,11 @@ from a for-profit company needs their commercial licence, or pin
 
 ## Not covered yet
 
-- Tested on the iOS simulator and the Android emulator against the public
-  broker with a fake animal; the Bluetooth add flow is written to the firmware
-  contract but has not been run against a real ESP32 from this app.
+- MQTT flows tested on the iOS simulator and the Android emulator against the
+  public broker with a fake animal. The Bluetooth add flow (WiFi route) was run
+  end to end from an iPhone 17 Pro Max against the ESP32 running `teddy_link`:
+  find, scan, password, join, name. The Bluetooth-only control panel is written
+  to the same characteristics as `app-ble.html` but was added after that test.
 - Universal / App Links need the two well-known files on iome.uk (above).
 - No background MQTT: the app disconnects when suspended and reconnects on
   resume; the animal stops the motor by itself 1.2 s after the last `motor:1`.

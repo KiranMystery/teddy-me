@@ -12,6 +12,8 @@ final serviceUuid = Guid('0e7a1000-7edd-4bea-a000-5eed12345678');
 final setupUuid = Guid('0e7a1003-7edd-4bea-a000-5eed12345678'); // write "ssid\tpassword\tzoocode", "scan", "reset"
 final infoUuid = Guid('0e7a1004-7edd-4bea-a000-5eed12345678'); // read "id=… mode=… wifi=none|fail:<n>|ok pair=…"; notifies ok=saved / scan=done / scan=failed / error=…
 final netsUuid = Guid('0e7a1005-7edd-4bea-a000-5eed12345678'); // read JSON [{"s":ssid,"r":rssi,"l":locked}] after scan=done
+final motorUuid = Guid('0e7a1001-7edd-4bea-a000-5eed12345678'); // write 1/0, re-send every 400 ms while held
+final ledUuid = Guid('0e7a1002-7edd-4bea-a000-5eed12345678'); // write 0 off / 1 pulse / 2 steady; notifies the current value
 
 /// `wifi=fail:<reason>` in INFO: the ESP32's disconnect reason from the last attempt.
 const wifiReasons = {
@@ -74,7 +76,14 @@ class AddController extends ChangeNotifier {
   List<FoundAnimal> found = [];
 
   BluetoothDevice? device;
-  BluetoothCharacteristic? _setup, _info, _nets;
+  BluetoothCharacteristic? _setup, _info, _nets, _motor, _led;
+
+  /// Bluetooth-only use: the animal stays in setup mode and this phone drives it directly.
+  bool bleOnly = false;
+  int led = 0;
+  bool get canControl => connected && _motor != null;
+  Timer? _hold;
+  bool get holding => _hold != null;
   String id = '';
   String fail = '';
   bool get connected => device?.isConnected ?? false;
@@ -184,6 +193,8 @@ class AddController extends ChangeNotifier {
         if (c.uuid == setupUuid) _setup = c;
         if (c.uuid == infoUuid) _info = c;
         if (c.uuid == netsUuid) _nets = c;
+        if (c.uuid == motorUuid) _motor = c;
+        if (c.uuid == ledUuid) _led = c;
       }
       if (_setup == null || _info == null) throw Exception('setup characteristics missing');
       final info = utf8.decode(await _info!.read(), allowMalformed: true);
@@ -194,15 +205,21 @@ class AddController extends ChangeNotifier {
         await _info!.setNotifyValue(true);
         _subs.add(_info!.onValueReceived.listen((v) => _onInfo(utf8.decode(v, allowMalformed: true))));
       } catch (_) {}
-      step = 2;
-      pick = null;
-      if (_nets != null) {
-        scanNets();
-      } else {
-        nets = [];
-        scanningNets = false;
-        pick = -1;
+      // LED state, so Bluetooth-only control shows what the animal is doing
+      if (_led != null) {
+        try {
+          final v = await _led!.read();
+          if (v.isNotEmpty) led = v.first.clamp(0, 2);
+          await _led!.setNotifyValue(true);
+          _subs.add(_led!.onValueReceived.listen((v) {
+            if (v.isNotEmpty) {
+              led = v.first.clamp(0, 2);
+              notifyListeners();
+            }
+          }));
+        } catch (_) {}
       }
+      // stay on step 1: the person chooses WiFi or Bluetooth-only
       notifyListeners();
     } catch (e) {
       _resetBle();
@@ -229,6 +246,70 @@ class AddController extends ChangeNotifier {
       sending = false;
       _set('the animal said: $v', bad: true);
     }
+  }
+
+  /// "Put it on WiFi": on to step 2 and ask the animal to scan.
+  void chooseWifi() {
+    if (!connected) return;
+    bleOnly = false;
+    step = 2;
+    pick = null;
+    if (_nets != null) {
+      scanNets();
+    } else {
+      nets = [];
+      scanningNets = false;
+      pick = -1;
+    }
+    notifyListeners();
+  }
+
+  /// "Use over Bluetooth only": no WiFi, control it from this phone while connected.
+  void chooseBleOnly() {
+    if (!connected) return;
+    bleOnly = true;
+    notifyListeners();
+  }
+
+  void backToChoice() {
+    holdStop();
+    bleOnly = false;
+    notifyListeners();
+  }
+
+  // ------------------------------------------------- Bluetooth-only control
+  Future<void> _writeMotor(int v) async {
+    final c = _motor;
+    if (c == null) return;
+    try {
+      await c.write([v], withoutResponse: c.properties.writeWithoutResponse);
+    } catch (_) {}
+  }
+
+  /// Hold to buzz over Bluetooth: motor 1 every 400 ms, 0 on release.
+  void holdStart() {
+    if (holding || !canControl) return;
+    _writeMotor(1);
+    _hold = Timer.periodic(const Duration(milliseconds: 400), (_) => _writeMotor(1));
+    notifyListeners();
+  }
+
+  void holdStop() {
+    if (_hold == null) return;
+    _hold!.cancel();
+    _hold = null;
+    _writeMotor(0);
+    notifyListeners();
+  }
+
+  Future<void> setLed(int v) async {
+    final c = _led;
+    if (c == null) return;
+    led = v;
+    notifyListeners();
+    try {
+      await c.write([v], withoutResponse: false);
+    } catch (_) {}
   }
 
   // ----------------------------------------------------------------- step 2
@@ -375,6 +456,8 @@ class AddController extends ChangeNotifier {
 
   // ------------------------------------------------------------------ reset
   void _resetBle() {
+    _hold?.cancel();
+    _hold = null;
     for (final s in _subs) {
       s.cancel();
     }
@@ -384,6 +467,8 @@ class AddController extends ChangeNotifier {
     _setup = null;
     _info = null;
     _nets = null;
+    _motor = null;
+    _led = null;
     if (d != null) {
       d.disconnect().catchError((_) {});
     }
@@ -409,6 +494,8 @@ class AddController extends ChangeNotifier {
     showHelp = false;
     found = [];
     scanningBle = false;
+    bleOnly = false;
+    led = 0;
     status = 'not connected';
     statusBad = false;
     statusBusy = false;
