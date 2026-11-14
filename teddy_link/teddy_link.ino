@@ -39,6 +39,7 @@
 
 #include <Preferences.h>
 #include <WiFi.h>
+#include <esp_mac.h>
 #include <PubSubClient.h>
 #include <BLEDevice.h>
 #include <BLEServer.h>
@@ -485,8 +486,11 @@ void setup() {
   pinMode(PAW_PIN, INPUT_PULLUP);
   pinMode(RESET_BTN_PIN, INPUT_PULLUP);
 
-  uint8_t mac[6];
-  WiFi.macAddress(mac);
+  // Read the factory MAC straight from eFuse. WiFi.macAddress() is only valid
+  // after WiFi has started; before that it returns nothing and leaves the buffer
+  // as stack garbage, which gave every board the same bogus id.
+  uint8_t mac[6] = {0};
+  esp_read_mac(mac, ESP_MAC_WIFI_STA);
   char idbuf[8];
   snprintf(idbuf, sizeof(idbuf), "%02x%02x%02x", mac[3], mac[4], mac[5]);
   bearId = idbuf;
