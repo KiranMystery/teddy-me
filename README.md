@@ -11,7 +11,7 @@ Phone → ESP32 → buzz / light. Two flavours, same buttons:
 
 | File | What it is |
 |---|---|
-| `circuit.svg` | Full wiring diagram, LED + motor (open in a browser) |
+| `circuit.svg` | Full wiring diagram, LED + motor + paw button (open in a browser) |
 | `circuit-led.svg` | LED only, for getting started before the transistor arrives |
 | `teddy_bear_ble/teddy_bear_ble.ino` | **Bluetooth** ESP32 sketch |
 | `app-ble.html` | **Bluetooth** control page (Web Bluetooth) |
@@ -32,6 +32,7 @@ Phone → ESP32 → buzz / light. Two flavours, same buttons:
 | 1 | NPN transistor | 2N2222, BC337, S8050, PN2222 … or a 2N7000 MOSFET |
 | 1 | 1 kΩ resistor | transistor base |
 | 1 | Diode 1N4148 (or 1N4001/4007) | flyback, across the motor |
+| 1 | Push button (tactile switch) | the paw button, between GPIO 27 and GND. Any momentary switch works |
 | 1 | 10–100 µF capacitor (optional) | across 3V3/GND, stops brownout resets when the motor starts. Bigger is better; 10 µF is fine to start. If electrolytic, + leg to 3V3 |
 
 ## Wiring
@@ -48,6 +49,8 @@ Phone → ESP32 → buzz / light. Two flavours, same buttons:
                         │
    GPIO 25 ──[ 220Ω ]──▶|── LED ────┐       │
                                     │       │
+   GPIO 27 ──── SW1 paw button ─────┤       │
+                 (press to close)   │       │
    GND ─────────────────────────────┴───────┴────────────────────── GND
 ```
 

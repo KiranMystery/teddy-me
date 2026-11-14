@@ -1,30 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 520" width="860" height="520" font-family="Helvetica, Arial, sans-serif" font-size="13">
-  <rect width="860" height="520" fill="#ffffff"/>
-  <text x="20" y="30" font-size="18" font-weight="bold" fill="#222">Teddy bear – ESP32 + LED + vibration motor</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 540" width="860" height="540" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="860" height="540" fill="#ffffff"/>
+  <text x="20" y="30" font-size="18" font-weight="bold" fill="#222">Teddy bear – ESP32 + LED + vibration motor + paw button</text>
 
   <!-- ESP32 -->
-  <rect x="40" y="70" width="160" height="290" rx="8" fill="#f3f4f6" stroke="#333" stroke-width="2"/>
+  <rect x="40" y="70" width="160" height="310" rx="8" fill="#f3f4f6" stroke="#333" stroke-width="2"/>
   <text x="120" y="100" text-anchor="middle" font-weight="bold" fill="#222">ESP32</text>
   <text x="120" y="118" text-anchor="middle" fill="#555">DevKit board</text>
-  <text x="120" y="345" text-anchor="middle" fill="#555">USB 5V in</text>
+  <text x="120" y="368" text-anchor="middle" fill="#555">USB 5V in</text>
   <!-- pin stubs + labels -->
   <g stroke="#333" stroke-width="2">
     <line x1="200" y1="110" x2="230" y2="110"/>
     <line x1="200" y1="190" x2="230" y2="190"/>
     <line x1="200" y1="260" x2="230" y2="260"/>
-    <line x1="200" y1="330" x2="230" y2="330"/>
+    <line x1="200" y1="305" x2="230" y2="305"/>
+    <line x1="200" y1="345" x2="230" y2="345"/>
   </g>
   <text x="192" y="105" text-anchor="end" fill="#b91c1c" font-weight="bold">3V3</text>
   <text x="192" y="185" text-anchor="end" fill="#222" font-weight="bold">GPIO 26</text>
   <text x="192" y="255" text-anchor="end" fill="#222" font-weight="bold">GPIO 25</text>
-  <text x="192" y="325" text-anchor="end" fill="#222" font-weight="bold">GND</text>
+  <text x="192" y="300" text-anchor="end" fill="#222" font-weight="bold">GPIO 27</text>
+  <text x="192" y="340" text-anchor="end" fill="#222" font-weight="bold">GND</text>
 
   <!-- 3V3 rail -->
   <line x1="230" y1="110" x2="730" y2="110" stroke="#b91c1c" stroke-width="2"/>
   <text x="738" y="114" fill="#b91c1c" font-weight="bold">+3.3 V</text>
 
   <!-- GND rail -->
-  <line x1="230" y1="330" x2="230" y2="400" stroke="#333" stroke-width="2"/>
+  <line x1="230" y1="345" x2="230" y2="400" stroke="#333" stroke-width="2"/>
   <line x1="230" y1="400" x2="730" y2="400" stroke="#333" stroke-width="2"/>
   <!-- ground symbol -->
   <g stroke="#333" stroke-width="2">
@@ -51,8 +53,8 @@
   <line x1="545" y1="198" x2="570" y2="214" stroke="#333" stroke-width="2"/>
   <polygon points="570,214 559,212 564,204" fill="#333"/>
   <line x1="570" y1="214" x2="570" y2="400" stroke="#333" stroke-width="2"/>
-  <text x="520" y="236" text-anchor="end" fill="#222">Q1  2N2222 / BC337</text>
-  <text x="520" y="252" text-anchor="end" fill="#555">(any small NPN)</text>
+  <text x="586" y="248" fill="#222">Q1  2N2222 / BC337</text>
+  <text x="586" y="264" fill="#555">(any small NPN)</text>
   <text x="520" y="214" text-anchor="end" fill="#555" font-size="11">B</text>
   <text x="578" y="170" fill="#555" font-size="11">C</text>
   <text x="578" y="226" fill="#555" font-size="11">E</text>
@@ -104,12 +106,27 @@
   <circle cx="420" cy="400" r="3.5" fill="#333"/>
   <circle cx="570" cy="400" r="3.5" fill="#333"/>
   <circle cx="730" cy="400" r="3.5" fill="#333"/>
-  <text x="372" y="292" text-anchor="middle" fill="#222">LED</text>
-  <text x="372" y="306" text-anchor="middle" fill="#555">long leg to R1</text>
+  <text x="404" y="241" fill="#222">LED <tspan fill="#555">(long leg to R1)</tspan></text>
+
+  <!-- ===== PAW BUTTON (GPIO 27) ===== -->
+  <line x1="230" y1="305" x2="268" y2="305" stroke="#333" stroke-width="2"/>
+  <circle cx="272" cy="305" r="4" fill="#fff" stroke="#333" stroke-width="2"/>
+  <circle cx="318" cy="305" r="4" fill="#fff" stroke="#333" stroke-width="2"/>
+  <!-- lever (open) -->
+  <line x1="268" y1="302" x2="324" y2="290" stroke="#333" stroke-width="2.5"/>
+  <!-- actuator -->
+  <line x1="295" y1="296" x2="295" y2="282" stroke="#333" stroke-width="2"/>
+  <line x1="284" y1="282" x2="306" y2="282" stroke="#333" stroke-width="3"/>
+  <line x1="322" y1="305" x2="345" y2="305" stroke="#333" stroke-width="2"/>
+  <line x1="345" y1="305" x2="345" y2="400" stroke="#333" stroke-width="2"/>
+  <circle cx="345" cy="400" r="3.5" fill="#333"/>
+  <text x="242" y="326" fill="#222">SW1  paw button</text>
+  <text x="242" y="340" fill="#555">(no resistor)</text>
 
   <!-- notes -->
   <text x="20" y="455" fill="#222" font-weight="bold">Notes</text>
   <text x="20" y="473" fill="#444">• The motor must NOT be wired straight to a GPIO pin – it draws far more current than the pin can supply. Q1 does the switching.</text>
   <text x="20" y="490" fill="#444">• D1 absorbs the voltage spike the motor makes when it switches off. C1 helps stop the ESP32 rebooting when the motor kicks in.</text>
-  <text x="20" y="507" fill="#444">• Add more LEDs: one per GPIO with its own 220 Ω, or several motors: one transistor stage each (R2, Q1, D1) on separate GPIOs.</text>
+  <text x="20" y="507" fill="#444">• SW1 is any momentary push button (tactile switch, microswitch) between GPIO 27 and GND. No resistor: the ESP32's internal pull-up is used.</text>
+  <text x="20" y="524" fill="#444">• Add more LEDs: one per GPIO with its own 220 Ω, or several motors: one transistor stage each (R2, Q1, D1) on separate GPIOs.</text>
 </svg>
