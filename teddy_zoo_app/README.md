@@ -182,8 +182,8 @@ from a for-profit company needs their commercial licence, or pin
 - MQTT flows tested on the iOS simulator and the Android emulator against the
   public broker with a fake animal. The Bluetooth add flow (WiFi route) was run
   end to end from an iPhone 17 Pro Max against the ESP32 running `teddy_link`:
-  find, scan, password, join, name. The Bluetooth-only control panel is written
-  to the same characteristics as `app-ble.html` but was added after that test.
+  find, scan, password, join, name. The Bluetooth-only control panel (paw and
+  light over MOTOR/LED) was then verified on the same hardware.
 - Universal / App Links need the two well-known files on iome.uk (above).
 - No background MQTT: the app disconnects when suspended and reconnects on
   resume; the animal stops the motor by itself 1.2 s after the last `motor:1`.
