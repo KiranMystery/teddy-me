@@ -1,0 +1,37 @@
+/* ============================================================
+   BRAND TOKENS – the only colours, radii and fonts in the pages.
+   To white-label: edit this file and replace the assets in brand/.
+   Pages: app-ble.html (direct Bluetooth control), zoo.html (the zoo app).
+   ============================================================ */
+:root {
+  --brand: #DB9558;          /* primary: controls, live dot, wordmark ground */
+  --on-brand: #1C1714;       /* text and glyphs placed on --brand */
+  --paper: #F7F4EE;          /* page background */
+  --card: #FFFFFF;           /* cards and sheets */
+  --ink: #1C1714;            /* text */
+  --mute: #6E655C;           /* secondary text */
+  --line: #E8E1D6;           /* hairlines, switch track off */
+  --accent: #2B4C7E;         /* links, secondary emphasis */
+  --accent-soft: #E3E9F2;    /* "linked" badge ground */
+  --err: #B5442B;            /* error status */
+  --shadow: 0 10px 30px rgba(28, 23, 20, .12);
+  --r-card: 22px;
+  --r-ctl: 14px;
+  --r-pill: 999px;
+  --font-display: "Jost", "Futura", "Century Gothic", "Avenir Next", sans-serif;
+  --font-body: "Work Sans", "Helvetica Neue", Arial, sans-serif;
+  --wordmark-h: 22px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #1C1714; --card: #2A231F; --ink: #F3EEE6; --mute: #A39A90; --line: #3B322C;
+    --accent: #7FA1D6; --accent-soft: #2E3A4D; --err: #F0876F; --shadow: 0 10px 30px rgba(0, 0, 0, .45);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #1C1714; --card: #2A231F; --ink: #F3EEE6; --mute: #A39A90; --line: #3B322C;
+  --accent: #7FA1D6; --accent-soft: #2E3A4D; --err: #F0876F; --shadow: 0 10px 30px rgba(0, 0, 0, .45);
+  color-scheme: dark;
+}

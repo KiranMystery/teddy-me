@@ -1,0 +1,918 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Zoo">
+<meta name="theme-color" id="themeColor" content="#F7F4EE">
+<meta name="color-scheme" content="light dark">
+<title>Teddy zoo</title>
+<link rel="manifest" href="brand/manifest-zoo.webmanifest">
+<link rel="icon" href="brand/icon.svg" type="image/svg+xml">
+<link rel="icon" href="brand/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="brand/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600&family=Work+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="brand/tokens.css">
+<style>
+  /* Brand tokens (colours, radii, fonts) come from brand/tokens.css */
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { min-height: 100%; margin: 0; }
+  body {
+    background: var(--paper); color: var(--ink);
+    font-family: var(--font-body); font-size: 16px; line-height: 1.45;
+    -webkit-font-smoothing: antialiased; -webkit-touch-callout: none; touch-action: manipulation;
+    padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+             max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  }
+  h1, h2 { font-family: var(--font-display); margin: 0; font-weight: 600; }
+  h1 { font-size: 28px; line-height: 1.15; }
+  h2 { font-size: 17px; }
+  p { margin: 0; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  a { color: var(--accent); }
+  :focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
+  [hidden] { display: none !important; }
+  code, .mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+
+  .app { width: 100%; max-width: 420px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; min-height: calc(100vh - 32px); }
+  .screen { display: flex; flex-direction: column; gap: 16px; flex: 1; }
+
+  .top { display: flex; align-items: center; justify-content: space-between; min-height: 48px; }
+  .wordmark { height: var(--wordmark-h); width: auto; display: block; }
+  .icon-btn { width: 44px; height: 44px; border-radius: 50%; border: 0; background: transparent; color: var(--mute); display: grid; place-items: center; margin-right: -8px; text-decoration: none; }
+  .icon-btn:active { background: var(--line); }
+  .icon-btn svg { width: 24px; height: 24px; }
+  .back { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; color: var(--mute); margin-left: -8px; text-decoration: none; font-size: 15px; font-weight: 500; }
+  .back svg { width: 24px; height: 24px; }
+  .textbtn { min-height: 44px; padding: 0 12px; border: 0; background: transparent; font-size: 15px; font-weight: 500; color: var(--accent); margin-right: -8px; }
+
+  .card { background: var(--card); border-radius: var(--r-card); box-shadow: var(--shadow); }
+  .card.pad { padding: 14px 16px; }
+  .btn { min-height: 52px; padding: 0 20px; border-radius: var(--r-ctl); border: 0; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
+         font-family: var(--font-display); font-weight: 600; font-size: 16px; letter-spacing: .02em; background: var(--brand); color: var(--on-brand); text-decoration: none; transition: transform .08s, filter .15s; }
+  .btn:active { transform: scale(.98); filter: brightness(.95); }
+  .btn.secondary { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 2px var(--line); }
+  .btn.quiet { background: transparent; color: var(--mute); min-height: 44px; }
+  .btn.danger { background: transparent; color: var(--err); min-height: 44px; }
+  .btn:disabled { opacity: .45; pointer-events: none; }
+  .pill { min-height: 44px; padding: 0 14px; border-radius: var(--r-pill); border: 0; font-size: 14px; font-weight: 500; background: var(--paper); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+  .pill.primary { background: var(--brand); color: var(--on-brand); box-shadow: none; }
+
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--mute); }
+  .sub { font-size: 13px; color: var(--mute); }
+  .lead { color: var(--mute); font-size: 15px; }
+  .status { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--mute); min-height: 1.3em; }
+  .status.bad { color: var(--err); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line); flex: none; }
+  .dot.on { background: var(--brand); }
+  .dot.busy { background: var(--brand); animation: blink 1s infinite; }
+  .heart { width: 13px; height: 12px; background: var(--brand); flex: none; -webkit-mask: url(brand/heart.svg) center / contain no-repeat; mask: url(brand/heart.svg) center / contain no-repeat; animation: beat 1.6s infinite; }
+  @keyframes blink { 50% { opacity: .25; } }
+  @keyframes beat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.25); } 30% { transform: scale(1); } 45% { transform: scale(1.15); } }
+
+  .avatar { border-radius: 30%; background: var(--brand); color: var(--on-brand); display: grid; place-items: center; overflow: hidden; flex: none; }
+  .avatar img, .avatar svg { width: 100%; height: 100%; display: block; }
+  .avatar svg { width: 76%; height: 76%; }
+  .badge { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 2px 8px; border-radius: var(--r-pill); }
+  .badge.mine { background: var(--brand); color: var(--on-brand); }
+  .badge.linked { background: var(--accent-soft); color: var(--accent); }
+
+  /* zoo */
+  .titlebar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+  .chips { display: flex; gap: 8px; overflow-x: auto; margin: 0 -16px; padding: 2px 16px 6px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: none; min-height: 40px; padding: 0 16px; border-radius: var(--r-pill); border: 0; font-family: var(--font-display); font-weight: 500; font-size: 15px; background: var(--card); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+  .chip.sel { background: var(--ink); color: var(--paper); box-shadow: none; }
+  .list { display: flex; flex-direction: column; gap: 12px; padding-bottom: 80px; }
+  .acard { display: flex; align-items: center; gap: 12px; padding: 12px; min-height: 76px; text-decoration: none; color: var(--ink); }
+  .acard.offline { opacity: .7; }
+  .acard .avatar { width: 52px; height: 52px; }
+  .acard .main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .acard .name { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 600; font-size: 17px; line-height: 1.2; }
+  .acard .state { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 48px; flex: none; font-size: 11px; color: var(--mute); }
+  .fab { position: fixed; left: 16px; right: 16px; bottom: max(24px, env(safe-area-inset-bottom)); margin: 0 auto; width: auto; max-width: 420px; }
+  .empty { padding: 32px 16px; text-align: center; color: var(--mute); font-size: 14px; }
+
+  /* animal */
+  .hero { display: flex; align-items: center; gap: 14px; }
+  .hero .avatar { width: 72px; height: 72px; }
+  .hero h1 { font-size: 26px; display: flex; align-items: center; gap: 8px; }
+  .pawwrap { position: relative; display: grid; place-items: center; padding: 20px 0 6px; }
+  .ring, .ring2 { position: absolute; width: 220px; height: 220px; border-radius: 50%; border: 3px solid var(--brand); opacity: 0; pointer-events: none; }
+  .paw { position: relative; width: 220px; height: 220px; border-radius: 50%; border: 0; color: var(--on-brand); touch-action: none;
+         background: radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--brand) 75%, white), var(--brand) 70%);
+         box-shadow: 0 16px 36px color-mix(in srgb, var(--brand) 45%, transparent), inset 0 -8px 18px rgba(0,0,0,.18);
+         display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+         font-family: var(--font-display); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; transition: transform .08s, box-shadow .08s; }
+  .paw svg { width: 96px; height: 96px; fill: currentColor; transition: transform .08s; }
+  .paw:disabled { filter: saturate(.4); opacity: .55; }
+  .paw.on { transform: scale(.93); box-shadow: 0 6px 14px color-mix(in srgb, var(--brand) 45%, transparent), inset 0 10px 22px rgba(0,0,0,.22); animation: wobble .12s infinite; }
+  .paw.on svg { transform: scale(1.08); }
+  .pawwrap.on .ring { animation: ripple .9s ease-out infinite; }
+  .pawwrap.on .ring2 { animation: ripple .9s ease-out .45s infinite; }
+  @keyframes ripple { 0% { transform: scale(.93); opacity: .7; } 100% { transform: scale(1.35); opacity: 0; } }
+  @keyframes wobble { 0% { transform: scale(.93) rotate(-1.5deg); } 50% { transform: scale(.93) rotate(1.5deg); } 100% { transform: scale(.93) rotate(-1.5deg); } }
+  .pawhint { text-align: center; font-size: 13px; color: var(--mute); min-height: 1.4em; }
+  .rowhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .rowhead .lead-ic { display: flex; align-items: center; gap: 12px; }
+  .bulb { width: 28px; height: 28px; color: var(--mute); flex: none; }
+  .bulb.lit { color: var(--brand); }
+  .seg { display: flex; background: var(--line); border-radius: var(--r-ctl); padding: 3px; gap: 2px; }
+  .seg button { flex: 1; min-height: 42px; border: 0; border-radius: 11px; font-size: 15px; font-weight: 500; background: transparent; color: var(--mute); }
+  .seg button[aria-pressed="true"] { background: var(--card); color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,.15); }
+  .seg.small button, .rows .seg button { min-height: 36px; font-size: 14px; padding: 0 12px; flex: none; width: auto; justify-content: center; border-top: 0; }
+  .mini { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+  .mini .avatar { width: 36px; height: 36px; }
+  .mini .main { flex: 1; display: flex; flex-direction: column; }
+  .rows { padding: 4px 16px; }
+  .rows button, .rows label { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; border: 0; background: transparent; width: 100%; padding: 0; text-align: left; color: var(--ink); font-size: 15px; }
+  .rows > * + * { border-top: 1px solid var(--line); }
+  .rows .k { color: var(--mute); }
+  .rows .v { display: flex; align-items: center; gap: 6px; font-weight: 500; }
+  .chev { width: 18px; height: 18px; color: var(--line); }
+
+  /* forms */
+  .field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: var(--mute); }
+  .field input, .field select { min-height: 48px; padding: 0 14px; border-radius: var(--r-ctl); border: 1.5px solid var(--line); font: inherit; font-size: 16px; font-weight: 400; color: var(--ink); background: var(--paper); width: 100%; }
+  .field .help { font-weight: 400; font-size: 12px; }
+  .form { display: flex; flex-direction: column; gap: 14px; padding: 16px; }
+  .twobtn { display: flex; gap: 10px; }
+
+  /* add animal */
+  .steps { display: flex; gap: 6px; }
+  .steps span { width: 24px; height: 6px; border-radius: 3px; background: var(--line); }
+  .steps span.on { background: var(--brand); }
+  .found { display: flex; align-items: center; gap: 12px; padding: 12px; min-height: 72px; }
+  .found .ic { width: 48px; height: 48px; border-radius: 14px; background: var(--line); display: grid; place-items: center; color: var(--mute); flex: none; }
+  .nets { padding: 4px 16px; }
+  .nets button { display: flex; align-items: center; gap: 12px; min-height: 56px; border: 0; background: transparent; width: 100%; padding: 0; text-align: left; color: var(--ink); font-size: 16px; }
+  .nets > * + * { border-top: 1px solid var(--line); }
+  .bars { display: flex; gap: 3px; align-items: flex-end; height: 18px; width: 24px; flex: none; }
+  .bars i { width: 4px; border-radius: 2px; background: var(--line); }
+  .bars i.on { background: var(--ink); }
+  .radio { width: 22px; height: 22px; border-radius: 50%; flex: none; background: var(--card); box-shadow: inset 0 0 0 1.5px var(--line); }
+  .radio.on { background: var(--brand); box-shadow: inset 0 0 0 5px var(--card), 0 0 0 1.5px var(--brand); }
+  .scanning { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px 0; color: var(--mute); font-size: 14px; }
+  .scanning .bars { height: 24px; gap: 6px; width: auto; }
+  .scanning .bars i { width: 6px; background: var(--brand); animation: blink 1.2s infinite; }
+  .joining { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 40px 0; text-align: center; }
+  .joining .avatar { width: 96px; height: 96px; box-shadow: 0 16px 36px color-mix(in srgb, var(--brand) 45%, transparent); }
+  .notice { padding: 16px; font-size: 14px; line-height: 1.5; border-left: 4px solid var(--err); }
+
+  /* settings */
+  .qr { border-radius: var(--r-ctl); background: #FFFFFF; box-shadow: inset 0 0 0 1.5px var(--line); display: grid; place-items: center; padding: 6px; flex: none; }
+  .qr svg { width: 100%; height: 100%; display: block; }
+  .about { display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 8px; font-size: 13px; color: var(--mute); }
+
+  /* sheets */
+  .backdrop { position: fixed; inset: 0; background: rgba(28,23,20,.45); display: flex; align-items: flex-end; justify-content: center; z-index: 10; }
+  .sheet { width: 100%; max-width: 480px; background: var(--card); color: var(--ink); border-radius: var(--r-card) var(--r-card) 0 0; padding: 10px 16px max(16px, env(safe-area-inset-bottom)); box-shadow: var(--shadow); animation: rise .22s ease-out; max-height: 88vh; overflow: auto; display: flex; flex-direction: column; gap: 14px; }
+  @keyframes rise { from { transform: translateY(40px); opacity: 0; } }
+  .grab { width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: 0 auto; }
+  .sheet h2 { font-size: 20px; }
+
+  .join-avatars { display: flex; justify-content: center; }
+  .join-avatars .avatar { width: 64px; height: 64px; box-shadow: 0 0 0 4px var(--paper); }
+  .join-avatars .avatar + .avatar { margin-left: -14px; }
+  .checks { display: flex; flex-direction: column; gap: 10px; font-size: 14px; color: var(--mute); }
+  .checks div { display: flex; gap: 10px; align-items: flex-start; }
+  .checks svg { width: 20px; height: 20px; flex: none; margin-top: 2px; color: var(--brand); }
+
+  @media (prefers-reduced-motion: reduce) { .paw.on, .pawwrap.on .ring, .pawwrap.on .ring2, .heart, .dot.busy, .sheet, .scanning .bars i { animation: none; } }
+</style>
+</head>
+<body oncontextmenu="return false">
+<div class="app">
+
+  <!-- ===== ZOO ===== -->
+  <section class="screen" id="scr-zoo" hidden>
+    <header class="top">
+      <img class="wordmark" src="brand/wordmark.svg" alt="IoME">
+      <a class="icon-btn" href="#/settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="15" cy="7" r="2.5"/><circle cx="9" cy="17" r="2.5"/></svg>
+      </a>
+    </header>
+    <div class="titlebar">
+      <h1 style="font-size:30px">My zoo</h1>
+      <span class="sub" style="padding-bottom:4px">zoo code <span class="mono" id="zooCode" style="color:var(--ink)">–</span></span>
+    </div>
+    <div class="status" id="zooStatus"><span class="dot" id="zooDot"></span><span id="zooStatusText">not connected</span></div>
+    <div class="chips" id="chips"></div>
+    <div class="list" id="list"></div>
+    <a class="btn fab" href="#/add">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      Add an animal
+    </a>
+  </section>
+
+  <!-- ===== ADD ANIMAL (Bluetooth setup) ===== -->
+  <section class="screen" id="scr-add" hidden>
+    <header class="top">
+      <a class="back" href="#/" aria-label="Back to the zoo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></a>
+      <div class="steps" id="steps" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+      <span style="width:44px"></span>
+    </header>
+
+    <div id="add1" hidden class="screen">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span class="eyebrow">Step 1 of 4</span>
+        <h1>Find your animal</h1>
+        <p class="lead">Switch it on. While it is not set up yet it shows itself over Bluetooth as <b>Teddy</b>.</p>
+      </div>
+      <div class="card notice" id="nobt" hidden>
+        <b>This browser can't do Bluetooth.</b><br>
+        Use <b>Chrome</b> on Android, Mac or Windows. On iPhone, open this page in the free <b>Bluefy</b> browser app. Everything else in the zoo works in any browser.
+      </div>
+      <div class="status" id="addStatus"><span class="dot" id="addDot"></span><span id="addStatusText">not connected</span></div>
+      <div class="card found" id="foundCard" hidden>
+        <span class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7l10 10-5 5V2l5 5L7 17"/></svg></span>
+        <span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-family:var(--font-display);font-weight:600;font-size:17px" id="foundName">Teddy</span><span class="sub" id="foundSub"></span></span>
+        <span class="radio on"></span>
+      </div>
+      <div style="flex:1"></div>
+      <button class="btn" id="btConnect">Connect over Bluetooth</button>
+    </div>
+
+    <div id="add2" hidden class="screen">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span class="eyebrow">Step 2 of 4</span>
+        <h1>Put it on your WiFi</h1>
+        <p class="lead"><span id="addName2">The animal</span> looks for networks itself. Pick yours; nothing to type but the password. 2.4 GHz only.</p>
+      </div>
+      <div class="scanning" id="scanning"><span class="bars" aria-hidden="true"><i style="height:8px"></i><i style="height:14px;animation-delay:.2s"></i><i style="height:20px;animation-delay:.4s"></i><i style="height:24px;animation-delay:.6s"></i></span>Scanning for networks…</div>
+      <div id="netsWrap" hidden style="display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between" class="sub"><span>Strongest first</span><button class="textbtn" id="rescan">Rescan</button></div>
+        <div class="card nets" id="nets"></div>
+        <div class="card form" id="wifiForm" hidden>
+          <label class="field" id="ssidField" hidden>Network name<input id="ssid" autocomplete="off" autocapitalize="off" placeholder="Exactly as the router has it"></label>
+          <div class="field" id="passField"><label for="pass">Password for <span id="passFor"></span></label>
+            <div style="display:flex;gap:8px"><input id="pass" type="password" autocomplete="new-password" autocapitalize="off" spellcheck="false" style="flex:1"><button class="pill" id="showPass" type="button" style="flex:none">Show</button></div>
+            <span class="help" id="passHelp" hidden></span>
+          </div>
+          <div class="field">Zoo code
+            <div style="display:flex;gap:8px"><input id="pair" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false" style="letter-spacing:.06em"><button class="pill" id="genCode" type="button">New</button></div>
+            <span class="help">Your zoo's code, already filled in. Animals with the same code see and trigger each other; New starts a separate zoo.</span>
+          </div>
+        </div>
+        <button class="btn" id="sendSetup" hidden>Send to the animal</button>
+        <button class="btn quiet" id="forgetWifi">Forget WiFi on this animal</button>
+      </div>
+    </div>
+
+    <div id="add3" hidden class="screen">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span class="eyebrow">Step 3 of 4</span>
+        <h1>Joining <span id="joinSsid"></span></h1>
+        <p class="lead">The animal is restarting and joining your WiFi. Bluetooth drops now; that is expected.</p>
+      </div>
+      <div class="joining">
+        <div class="avatar" id="joinAvatar"></div>
+        <div class="status"><span class="dot busy"></span><span id="joinText">Restarting and joining WiFi…</span></div>
+        <span class="sub">Its light blinks until it is online, then it buzzes once.</span>
+      </div>
+      <p class="sub" id="joinHelp" hidden style="text-align:center">Not online yet. If its light is still blinking it could not join, usually a wrong password. Connect again over Bluetooth and the animal says why.</p>
+      <div style="flex:1"></div>
+      <button class="btn secondary" id="skipWait" hidden>Continue without waiting</button>
+      <button class="btn quiet" id="retryBle" hidden>Connect again over Bluetooth</button>
+    </div>
+
+    <div id="add4" hidden class="screen">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span class="eyebrow">Step 4 of 4</span>
+        <h1>Give it a name</h1>
+        <p class="lead">It is in your zoo. The id <span class="mono" id="newId" style="color:var(--ink)"></span> stays on the animal; the rest is yours to change.</p>
+      </div>
+      <div class="hero"><div class="avatar" id="newAvatar" style="width:64px;height:64px"></div><div class="status" id="newState"><span class="dot"></span><span>waiting for it to come online</span></div></div>
+      <div class="card form">
+        <label class="field">Name<input id="newName" placeholder="Ellie" autocomplete="off"></label>
+        <div class="field">Species<div class="seg" id="newSpecies"><button data-v="elephant" aria-pressed="true">Elephant</button><button data-v="bear" aria-pressed="false">Bear</button><button data-v="other" aria-pressed="false">Other</button></div></div>
+        <label class="field">Owner<input id="newOwner" placeholder="Your name" autocomplete="off"></label>
+      </div>
+      <div style="flex:1"></div>
+      <button class="btn" id="finishAdd">Add to my zoo</button>
+    </div>
+  </section>
+
+  <!-- ===== ANIMAL ===== -->
+  <section class="screen" id="scr-animal" hidden>
+    <header class="top">
+      <a class="back" href="#/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Zoo</a>
+      <button class="textbtn" id="editBtn">Edit</button>
+    </header>
+    <div class="hero">
+      <div class="avatar" id="aAvatar"></div>
+      <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+        <h1><span id="aName"></span><span class="badge" id="aBadge" hidden></span></h1>
+        <span class="sub" id="aSub"></span>
+        <span class="status" id="aState"></span>
+      </div>
+    </div>
+    <div class="pawwrap" id="pawWrap">
+      <span class="ring" aria-hidden="true"></span><span class="ring2" aria-hidden="true"></span>
+      <button class="paw" id="paw" aria-label="Hold to buzz">
+        <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 44c-14 0-28 12-28 26 0 8 6 12 13 12 6 0 10-3 15-3s9 3 15 3c7 0 13-4 13-12 0-14-14-26-28-26z"/><ellipse cx="22" cy="40" rx="9" ry="12" transform="rotate(-22 22 40)"/><ellipse cx="40" cy="24" rx="9.5" ry="13"/><ellipse cx="60" cy="24" rx="9.5" ry="13"/><ellipse cx="78" cy="40" rx="9" ry="12" transform="rotate(22 78 40)"/></svg>
+        <span id="pawLabel">hold to buzz</span>
+      </button>
+    </div>
+    <p class="pawhint" id="pawHint"></p>
+
+    <div class="card pad" style="display:flex;flex-direction:column;gap:12px">
+      <div class="rowhead"><div class="lead-ic">
+        <svg class="bulb" id="bulb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M8.5 14.5A6 6 0 1 1 15.5 14.5c-.6.6-1 1.5-1 2.5h-5c0-1-.4-1.9-1-2.5z"/></svg>
+        <div style="display:flex;flex-direction:column"><h2>Light</h2><span class="sub" id="lightSub">off</span></div>
+      </div></div>
+      <div class="seg" id="lightSeg"><button data-led="0" aria-pressed="true">Off</button><button data-led="1" aria-pressed="false">Pulse</button><button data-led="2" aria-pressed="false">Steady</button></div>
+    </div>
+
+    <div class="card pad" style="display:flex;flex-direction:column;gap:10px">
+      <div class="rowhead">
+        <div style="display:flex;flex-direction:column"><h2>Paw triggers</h2><span class="sub" id="linksSub"></span></div>
+        <a class="textbtn" id="linksEdit" href="#/links/" style="text-decoration:none;display:flex;align-items:center">Edit</a>
+      </div>
+      <div id="linkList" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+
+    <div class="card rows" id="detailRows">
+      <button data-edit><span class="k">Name</span><span class="v"><span id="dName"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></span></button>
+      <button data-edit><span class="k">Species</span><span class="v"><span id="dSpecies"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></span></button>
+      <button data-edit><span class="k">Owner</span><span class="v"><span id="dOwner"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></span></button>
+      <button><span class="k">Id</span><span class="v mono" id="dId"></span></button>
+    </div>
+    <button class="btn secondary" id="mineBtn" hidden>It's mine</button>
+    <button class="btn danger" id="toSetup">Send back to Bluetooth setup…</button>
+  </section>
+
+  <!-- ===== LINKS EDITOR ===== -->
+  <section class="screen" id="scr-links" hidden>
+    <header class="top"><a class="back" id="linksBack" href="#/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span id="linksBackName">Animal</span></a></header>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <h1 id="linksTitle">Paw triggers</h1>
+      <p class="lead">Tick the animals that should buzz when someone squeezes this paw. Links go one way; their owners choose what their own paws do.</p>
+    </div>
+    <div class="sub" style="display:flex;justify-content:space-between"><span id="linksCount"></span><span>zoo <span class="mono" id="linksZoo" style="color:var(--ink)"></span></span></div>
+    <div class="card rows" id="linkChecks"></div>
+    <p class="sub">Offline animals keep their link and catch up when they come back.</p>
+    <div style="flex:1"></div>
+    <button class="btn" id="saveLinks">Save</button>
+  </section>
+
+  <!-- ===== SETTINGS ===== -->
+  <section class="screen" id="scr-settings" hidden>
+    <header class="top"><a class="back" href="#/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Zoo</a></header>
+    <h1>Settings</h1>
+
+    <span class="eyebrow">You</span>
+    <div class="card rows">
+      <label><span class="k">My name</span><input id="owner" placeholder="e.g. Kiran" autocomplete="off" style="width:170px;min-height:40px;padding:0 12px;border-radius:12px;border:1.5px solid var(--line);font:inherit;color:var(--ink);background:var(--paper);text-align:right"></label>
+      <div style="display:flex;align-items:center;justify-content:space-between;min-height:56px"><span class="k">Theme</span><div class="seg small" id="themeSeg"><button data-theme="system" aria-pressed="true">Auto</button><button data-theme="light" aria-pressed="false">Light</button><button data-theme="dark" aria-pressed="false">Dark</button></div></div>
+    </div>
+
+    <span class="eyebrow">Your zoo</span>
+    <div class="card" style="padding:4px 16px">
+      <div style="display:flex;align-items:center;gap:14px;padding:12px 0 4px">
+        <div class="qr" id="qrSmall" style="width:96px;height:96px"></div>
+        <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+          <span class="k sub" style="font-size:15px">Zoo code</span>
+          <span class="mono" id="setZoo" style="font-size:22px;letter-spacing:.08em">–</span>
+          <span class="sub">Point a phone camera at the code: the app opens and joins your zoo.</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;padding:8px 0 12px">
+        <button class="pill" id="copyCode" style="flex:1">Copy code</button>
+        <button class="pill primary" id="shareBtn" style="flex:1">Share zoo</button>
+      </div>
+      <p class="sub" style="padding-bottom:12px">Anyone with this code joins your zoo and can see and trigger your animals. Share it with family, not the world.</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;min-height:56px;border-top:1px solid var(--line)"><span class="k sub" style="font-size:15px">Animals</span><span style="font-weight:500" id="setCount">–</span></div>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:12px 0;border-top:1px solid var(--line)">
+        <span class="k sub" style="font-size:15px">Switch to another zoo</span>
+        <div style="display:flex;gap:8px"><input id="pairInput" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="zoo code" style="flex:1;min-height:44px;padding:0 12px;border-radius:12px;border:1.5px solid var(--line);font-size:16px;letter-spacing:.06em;color:var(--ink);background:var(--paper)"><button class="pill" id="switchZoo">Switch</button></div>
+      </div>
+    </div>
+
+    <span class="eyebrow">Advanced</span>
+    <div class="card form">
+      <label class="field">Broker<input id="broker" class="mono" style="font-size:13px" autocomplete="off" autocapitalize="off" spellcheck="false"><span class="help">Where the animals and this app meet. Leave it unless you run your own.</span></label>
+    </div>
+
+    <div class="about">
+      <img src="brand/wordmark.svg" alt="IoME" style="height:18px;width:auto">
+      <span>Teddy zoo · an IoME thing · <a href="https://github.com/KiranMystery/teddy-me">source</a></span>
+      <button class="btn danger" id="leaveZoo" style="width:auto">Leave this zoo</button>
+    </div>
+  </section>
+
+  <!-- ===== JOIN (opened by the QR / link) ===== -->
+  <section class="screen" id="scr-join" hidden>
+    <header class="top" style="justify-content:center"><img class="wordmark" src="brand/wordmark.svg" alt="IoME"></header>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;padding:8px 0 4px">
+      <div class="join-avatars" id="joinAvatars"></div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <h1 id="joinTitle">Join this zoo?</h1>
+        <p class="lead">You scanned zoo code <span class="mono" id="joinCode" style="color:var(--ink)"></span>.</p>
+      </div>
+    </div>
+    <div class="card pad" style="display:flex;flex-direction:column;gap:10px">
+      <span class="eyebrow">Animals you'll see</span>
+      <div id="joinList" style="display:flex;flex-direction:column;gap:8px"><span class="sub">Looking…</span></div>
+    </div>
+    <div class="card pad checks">
+      <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg><span>Their animals show in your zoo; yours show in theirs.</span></div>
+      <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg><span>Either of you can link paws between them, so a squeeze reaches the other house.</span></div>
+      <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg><span>Your animals stay yours. Leave the zoo any time in Settings.</span></div>
+    </div>
+    <div style="flex:1"></div>
+    <p class="sub" style="text-align:center">Any animal you set up from now on joins this zoo too.</p>
+    <button class="btn" id="joinYes">Join this zoo</button>
+    <button class="btn secondary" id="joinNo">Not now</button>
+  </section>
+</div>
+
+<!-- edit sheet -->
+<div class="backdrop" id="editSheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+    <div class="grab"></div>
+    <h2 id="editTitle">Edit</h2>
+    <label class="field">Name<input id="eName" autocomplete="off"></label>
+    <div class="field">Species<div class="seg" id="eSpecies"><button data-v="elephant">Elephant</button><button data-v="bear">Bear</button><button data-v="other">Other</button></div></div>
+    <label class="field">Owner<input id="eOwner" autocomplete="off" placeholder="who it belongs to"></label>
+    <div class="twobtn"><button class="btn secondary" id="editCancel">Cancel</button><button class="btn" id="editSave">Save</button></div>
+  </div>
+</div>
+
+<!-- share sheet -->
+<div class="backdrop" id="shareSheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="shareTitle" style="align-items:center">
+    <div class="grab"></div>
+    <h2 id="shareTitle" style="align-self:flex-start">Share your zoo</h2>
+    <div class="qr" id="qrBig" style="width:248px;height:248px;border-radius:var(--r-card);box-shadow:0 0 0 1.5px var(--line), var(--shadow)"></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px"><span class="mono" id="shareCode" style="font-size:24px;letter-spacing:.1em"></span><span class="sub" id="shareUrlText"></span></div>
+    <p class="sub" style="text-align:center;max-width:300px">They point their camera at this, the app opens on a Join screen, one tap adds your zoo. No app yet? The same link opens the web version.</p>
+    <div class="twobtn" style="width:100%"><button class="btn secondary" id="copyLink">Copy link</button><button class="btn" id="sendLink">Send link</button></div>
+    <button class="btn quiet" id="shareDone">Done</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+// ======================= shared =======================
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const LEDNAMES = ['off', 'slow pulse, like a heartbeat', 'steady on'];
+const SPECIES_LABEL = { elephant: 'Elephant', bear: 'Bear' };
+const SHARE_HOST = 'iome.uk';            // when hosted there the QR is the short link https://iome.uk/zoo/<code>
+const store = {
+  get: k => { try { return localStorage.getItem(k); } catch (_) { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} },
+  del: k => { try { localStorage.removeItem(k); } catch (_) {} }
+};
+const S = { animals: {}, client: null, zoo: '', owner: '', broker: '', filter: 'all', open: null, hold: null, join: null, linkDraft: null };
+
+S.zoo = (store.get('teddy.pair') || '').trim();
+S.owner = (store.get('teddy.owner') || '').trim();
+S.broker = (store.get('teddy.broker') || 'wss://broker.emqx.io:8084/mqtt').trim();
+
+const A = id => (S.animals[id] = S.animals[id] || { online: false, led: 0, name: '', species: '', owner: '', links: [] });
+const same = (a, b) => (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase();
+const isMine = a => !!S.owner && same(a.owner, S.owner);
+const linkedToMine = id => Object.entries(S.animals).some(([x, a]) => x !== id && isMine(a) && a.links.includes(id)) ||
+                          (S.animals[id] && S.animals[id].links.some(x => S.animals[x] && isMine(S.animals[x])));
+const label = (id, a) => a.name || (a.species ? speciesLabel(a.species) + ' ' + id : 'Animal ' + id);
+const speciesLabel = s => SPECIES_LABEL[(s || '').toLowerCase()] || (s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Unknown species');
+const ids = () => Object.keys(S.animals).sort((x, y) => (isMine(S.animals[y]) - isMine(S.animals[x])) || label(x, S.animals[x]).localeCompare(label(y, S.animals[y])));
+const brokerUp = () => !!(S.client && S.client.connected);
+const genCode = () => { const a = 'abcdefghjkmnpqrstuvwxyz23456789'; let s = ''; for (let i = 0; i < 8; i++) s += a[Math.floor(Math.random() * a.length)]; return s; };
+const validCode = c => /^[a-z0-9]{4,32}$/i.test(c || '');
+
+const BEAR_SVG = '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="13" cy="13" r="5"/><circle cx="35" cy="13" r="5"/><circle cx="24" cy="26" r="14"/><ellipse cx="24" cy="30" rx="6" ry="4.5"/><circle cx="18.5" cy="22" r="1.3" fill="currentColor"/><circle cx="29.5" cy="22" r="1.3" fill="currentColor"/></svg>';
+const PAW_SVG = '<svg viewBox="0 0 100 100" fill="currentColor" aria-hidden="true"><path d="M50 44c-14 0-28 12-28 26 0 8 6 12 13 12 6 0 10-3 15-3s9 3 15 3c7 0 13-4 13-12 0-14-14-26-28-26z"/><ellipse cx="22" cy="40" rx="9" ry="12" transform="rotate(-22 22 40)"/><ellipse cx="40" cy="24" rx="9.5" ry="13"/><ellipse cx="60" cy="24" rx="9.5" ry="13"/><ellipse cx="78" cy="40" rx="9" ry="12" transform="rotate(22 78 40)"/></svg>';
+function avatarHtml(species) {
+  const s = (species || '').toLowerCase();
+  if (s === 'elephant' || !s) return '<img src="brand/icon.svg" alt="">';
+  if (s === 'bear') return BEAR_SVG;
+  return PAW_SVG;
+}
+function shareUrl(code) {
+  if (location.hostname.endsWith(SHARE_HOST)) return 'https://' + SHARE_HOST + '/zoo/' + encodeURIComponent(code);
+  return location.origin + location.pathname + '?join=' + encodeURIComponent(code);
+}
+function qrInto(el, text) {
+  if (!el) return;
+  if (!window.qrcode) { el.innerHTML = '<span class="sub">QR unavailable offline</span>'; return; }
+  try { const q = qrcode(0, 'M'); q.addData(text); q.make(); el.innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); }
+  catch (e) { el.innerHTML = '<span class="sub">QR failed</span>'; }
+}
+async function copyText(t) { try { await navigator.clipboard.writeText(t); return true; } catch (_) { return false; } }
+function flash(btn, text, ms = 1500) { const old = btn.textContent; btn.textContent = text; setTimeout(() => { btn.textContent = old; }, ms); }
+
+// ======================= theme =======================
+const root = document.documentElement, themeMeta = $('themeColor'), themeSeg = $('themeSeg');
+function applyTheme(t) {
+  if (t === 'light' || t === 'dark') root.setAttribute('data-theme', t); else { t = 'system'; root.removeAttribute('data-theme'); }
+  themeSeg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.theme === t ? 'true' : 'false'));
+  themeMeta.content = getComputedStyle(root).getPropertyValue('--paper').trim();
+}
+applyTheme(store.get('teddy-theme'));
+themeSeg.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; applyTheme(b.dataset.theme); store.set('teddy-theme', b.dataset.theme); });
+if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme(root.getAttribute('data-theme')));
+
+// ======================= router =======================
+const SCREENS = ['zoo', 'add', 'animal', 'links', 'settings', 'join'];
+let current = 'zoo';
+function go(h) { location.hash = h; }
+function route() {
+  const m = location.hash.match(/^#\/?([a-z]*)\/?([^/]*)/) || [];
+  let name = m[1] || 'zoo', arg = decodeURIComponent(m[2] || '');
+  if (!SCREENS.includes(name)) name = 'zoo';
+  if ((name === 'animal' || name === 'links') && !arg) name = 'zoo';
+  pawUp();
+  if (name === 'animal' || name === 'links') S.open = arg; else S.open = null;
+  if (name !== 'add' && current === 'add') addLeave();
+  if (name !== 'join' && S.join) joinLeave(false);
+  current = name;
+  SCREENS.forEach(s => $('scr-' + s).hidden = s !== name);
+  $('editSheet').hidden = true; $('shareSheet').hidden = true;
+  window.scrollTo(0, 0);
+  if (name === 'join') joinStart(arg);
+  render();
+}
+function render() {
+  ({ zoo: renderZoo, add: renderAdd, animal: renderAnimal, links: renderLinks, settings: renderSettings, join: renderJoin })[current]();
+}
+window.addEventListener('hashchange', route);
+
+// ======================= broker =======================
+function connect(zoo) {
+  if (S.client) { try { S.client.end(true); } catch (_) {} S.client = null; }
+  S.animals = {}; S.zoo = zoo || '';
+  render();
+  if (!validCode(S.zoo)) return;
+  if (!window.mqtt) { setZooStatus('the zoo library did not load; check your connection', true); return; }
+  const c = mqtt.connect(S.broker, { clientId: 'teddyapp-' + Math.random().toString(16).slice(2, 8), keepalive: 30, reconnectPeriod: 3000 });
+  S.client = c;
+  const zooNow = S.zoo;
+  c.on('connect', () => { c.subscribe(['teddy/' + zooNow + '/state/+', 'teddy/' + zooNow + '/meta/+', 'teddy/' + zooNow + '/links/+']); render(); });
+  c.on('message', (topic, payload) => {
+    const [, , kind, id] = topic.split('/'); if (!id) return; const a = A(id);
+    let j = {}; try { j = JSON.parse(payload.toString()); } catch (_) {}
+    if (kind === 'state') { a.online = !!j.online; a.led = j.led | 0; }
+    else if (kind === 'meta') { a.name = j.name || ''; a.species = j.species || ''; a.owner = j.owner || ''; }
+    else if (kind === 'links') { a.links = Array.isArray(j.ids) ? j.ids.filter(x => typeof x === 'string') : []; }
+    if (ADD.pendingId && id === ADD.pendingId && kind === 'state' && a.online) addArrived();
+    render();
+  });
+  c.on('close', () => render());
+  c.on('error', e => setZooStatus('broker error: ' + e.message, true));
+}
+function send(id, obj) { if (!brokerUp() || !id) return; S.client.publish('teddy/' + S.zoo + '/touch', JSON.stringify(Object.assign({ from: 'app', to: id }, obj))); }
+function publishRetained(sub, obj) { if (!brokerUp()) return false; S.client.publish('teddy/' + S.zoo + '/' + sub, JSON.stringify(obj), { retain: true }); return true; }
+function saveZoo(code) { S.zoo = code; store.set('teddy.pair', code); }
+
+// ======================= zoo screen =======================
+function setZooStatus(text, bad) { $('zooStatusText').textContent = text; $('zooStatus').classList.toggle('bad', !!bad); }
+function renderZoo() {
+  $('zooCode').textContent = S.zoo || '–';
+  const all = Object.keys(S.animals).length, on = Object.values(S.animals).filter(a => a.online).length;
+  const dot = $('zooDot'); dot.className = 'dot';
+  if (!validCode(S.zoo)) setZooStatus('no zoo yet: add an animal, or scan a zoo code', false);
+  else if (!brokerUp()) { dot.classList.add('busy'); setZooStatus(S.client ? 'connecting to your zoo…' : 'not connected', false); }
+  else { dot.classList.add('on'); setZooStatus(all ? on + ' of ' + all + ' online' : 'connected · waiting for animals', false); }
+
+  const owners = [...new Set(Object.values(S.animals).map(a => a.owner.trim()).filter(o => o && !same(o, S.owner)))].sort();
+  const chips = [['all', 'All'], ['mine', 'Mine'], ['linked', 'Linked to mine'], ['online', 'Online'], ...owners.map(o => ['owner:' + o, o])];
+  if (!chips.some(([k]) => k === S.filter)) S.filter = 'all';
+  $('chips').innerHTML = chips.map(([k, l]) => `<button class="chip${S.filter === k ? ' sel' : ''}" data-f="${esc(k)}" aria-pressed="${S.filter === k}">${esc(l)}</button>`).join('');
+  $('chips').querySelectorAll('.chip').forEach(c => c.onclick = () => { S.filter = c.dataset.f; renderZoo(); });
+
+  const f = S.filter;
+  const shown = ids().filter(id => { const a = S.animals[id];
+    return f === 'all' || (f === 'mine' && isMine(a)) || (f === 'linked' && linkedToMine(id)) || (f === 'online' && a.online) || (f.startsWith('owner:') && same(a.owner, f.slice(6))); });
+  $('list').innerHTML = shown.length ? shown.map(id => { const a = S.animals[id]; const mine = isMine(a);
+    const ownerLine = mine ? 'Yours · paw triggers ' + (a.links.length ? a.links.map(x => S.animals[x] ? label(x, S.animals[x]) : x).join(', ') : 'nothing yet') : (a.owner ? 'Owned by ' + esc(a.owner) : 'No owner yet');
+    return `<a class="card acard${a.online ? '' : ' offline'}" href="#/animal/${esc(id)}">
+      <div class="avatar">${avatarHtml(a.species)}</div>
+      <div class="main"><span class="name">${esc(label(id, a))}${mine ? '<span class="badge mine">mine</span>' : linkedToMine(id) ? '<span class="badge linked">linked</span>' : ''}</span>
+        <span class="sub">${esc(speciesLabel(a.species))} · <span class="mono">${esc(id)}</span></span><span class="sub">${ownerLine}</span></div>
+      <div class="state"><span class="dot${a.online ? ' on' : ''}"></span>${a.online ? 'online' : 'offline'}</div></a>`; }).join('')
+    : `<div class="empty">${all ? 'No animals match this filter.' : validCode(S.zoo) ? 'No animals in zoo ' + esc(S.zoo) + ' yet. Add one below, or check the code in Settings.' : 'Add your first animal below, or scan a friend’s zoo code to join theirs.'}</div>`;
+}
+
+// ======================= animal screen =======================
+function renderAnimal() {
+  const id = S.open; if (!id) return;
+  const a = A(id), mine = isMine(a), live = brokerUp() && a.online;
+  $('aAvatar').innerHTML = avatarHtml(a.species);
+  $('aName').textContent = label(id, a);
+  const badge = $('aBadge'); badge.hidden = !(mine || linkedToMine(id)); badge.className = 'badge ' + (mine ? 'mine' : 'linked'); badge.textContent = mine ? 'mine' : 'linked';
+  $('aSub').innerHTML = esc(speciesLabel(a.species)) + ' · <span class="mono">' + esc(id) + '</span> · ' + (a.owner ? esc(a.owner) + (mine ? ' (you)' : '') : 'no owner yet');
+  $('aState').innerHTML = a.online ? '<span class="heart"></span>online · on WiFi' : '<span class="dot"></span>offline';
+  $('paw').disabled = !live;
+  $('pawHint').textContent = S.hold ? label(id, a) + ' is buzzing · let go to stop' : live ? label(id, a) + ' buzzes for as long as you hold' : a.online ? 'connecting…' : 'offline: it will buzz again when it is back on WiFi';
+  const led = a.led | 0;
+  $('lightSub').textContent = LEDNAMES[led] || '?';
+  $('bulb').classList.toggle('lit', led !== 0);
+  $('lightSeg').querySelectorAll('button').forEach(b => { b.setAttribute('aria-pressed', +b.dataset.led === led ? 'true' : 'false'); b.disabled = !live; });
+  $('linksSub').textContent = 'Squeeze ' + (a.name || 'its') + (a.name ? '’s' : '') + ' paw and these buzz. Its own light goes steady while held.';
+  $('linksEdit').href = '#/links/' + encodeURIComponent(id);
+  const targets = a.links.filter(x => x !== id);
+  $('linkList').innerHTML = targets.length ? targets.map(x => { const t = S.animals[x];
+    const back = t && t.links.includes(id);
+    return `<div class="mini"><div class="avatar">${avatarHtml(t && t.species)}</div><div class="main"><span style="font-weight:500">${esc(t ? label(x, t) : 'Animal ' + x)}</span><span class="sub">${t ? esc(speciesLabel(t.species)) + (t.owner ? ' · ' + esc(t.owner) + '’s' : '') : 'not seen yet'}${back ? ' · also triggers this one' : ''}</span></div><span class="dot${t && t.online ? ' on' : ''}"></span></div>`; }).join('')
+    : '<span class="sub">Nothing yet. Tap Edit to choose which animals this paw reaches.</span>';
+  $('dName').textContent = a.name || '–'; $('dSpecies').textContent = speciesLabel(a.species); $('dOwner').textContent = a.owner || '–'; $('dId').textContent = id;
+  $('mineBtn').hidden = mine;
+  $('toSetup').disabled = !live;
+}
+$('lightSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.disabled) return; send(S.open, { led: +b.dataset.led }); });
+
+// hold to buzz: re-send every 400 ms, the animal stops by itself 1.2 s after the last one
+const paw = $('paw'), pawWrap = $('pawWrap');
+function pawDown(e) {
+  if (paw.disabled || S.hold || current !== 'animal') return;
+  e.preventDefault();
+  try { paw.setPointerCapture(e.pointerId); } catch (_) {}
+  paw.classList.add('on'); pawWrap.classList.add('on'); $('pawLabel').textContent = 'buzzing';
+  if (navigator.vibrate) { try { navigator.vibrate(12); } catch (_) {} }
+  const id = S.open; send(id, { motor: 1 });
+  S.hold = setInterval(() => send(id, { motor: 1 }), 400);
+  renderAnimal();
+}
+function pawUp() {
+  if (!S.hold) return;
+  clearInterval(S.hold); S.hold = null;
+  paw.classList.remove('on'); pawWrap.classList.remove('on'); $('pawLabel').textContent = 'hold to buzz';
+  send(S.open, { motor: 0 });
+  if (current === 'animal') renderAnimal();
+}
+paw.addEventListener('pointerdown', pawDown);
+['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => paw.addEventListener(ev, pawUp));
+window.addEventListener('blur', pawUp);
+document.addEventListener('visibilitychange', () => { if (document.hidden) pawUp(); });
+
+// edit sheet
+let eSpeciesVal = 'elephant';
+function setSeg(seg, v) { seg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v ? 'true' : 'false')); }
+function openEdit() {
+  const a = A(S.open);
+  $('editTitle').textContent = 'Edit ' + label(S.open, a);
+  $('eName').value = a.name; $('eOwner').value = a.owner;
+  const s = (a.species || 'elephant').toLowerCase(); eSpeciesVal = SPECIES_LABEL[s] ? s : (a.species ? 'other' : 'elephant'); setSeg($('eSpecies'), eSpeciesVal);
+  $('editSheet').hidden = false; $('eName').focus({ preventScroll: true });
+}
+$('eSpecies').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; eSpeciesVal = b.dataset.v; setSeg($('eSpecies'), eSpeciesVal); });
+$('editBtn').onclick = openEdit;
+$('detailRows').querySelectorAll('[data-edit]').forEach(b => b.onclick = openEdit);
+$('editCancel').onclick = () => { $('editSheet').hidden = true; };
+$('editSave').onclick = () => {
+  const a = A(S.open);
+  a.name = $('eName').value.trim(); a.owner = $('eOwner').value.trim();
+  a.species = eSpeciesVal === 'other' ? (SPECIES_LABEL[(a.species || '').toLowerCase()] ? 'other' : (a.species || 'other')) : eSpeciesVal;
+  if (!publishRetained('meta/' + S.open, { name: a.name, species: a.species, owner: a.owner })) alert('Not connected to the zoo yet; try again in a moment.');
+  $('editSheet').hidden = true; renderAnimal();
+};
+$('editSheet').addEventListener('click', e => { if (e.target === $('editSheet')) $('editSheet').hidden = true; });
+$('mineBtn').onclick = () => {
+  if (!S.owner) { const n = prompt('Your name, so the zoo knows which animals are yours:'); if (!n || !n.trim()) return; S.owner = n.trim(); store.set('teddy.owner', S.owner); }
+  const a = A(S.open); a.owner = S.owner;
+  publishRetained('meta/' + S.open, { name: a.name, species: a.species, owner: a.owner }); renderAnimal();
+};
+$('toSetup').onclick = () => {
+  const a = A(S.open);
+  if (!confirm('Send ' + label(S.open, a) + ' back to Bluetooth setup? It forgets its WiFi and leaves the zoo until you set it up again.')) return;
+  if (brokerUp()) S.client.publish('teddy/' + S.zoo + '/cmd/' + S.open, JSON.stringify({ cmd: 'setup' }));
+};
+
+// ======================= links editor =======================
+function renderLinks() {
+  const id = S.open; if (!id) return;
+  const a = A(id);
+  if (!S.linkDraft || S.linkDraft.id !== id) S.linkDraft = { id, set: new Set(a.links) };
+  $('linksBack').href = '#/animal/' + encodeURIComponent(id);
+  $('linksBackName').textContent = label(id, a);
+  $('linksTitle').textContent = (a.name ? a.name + '’s' : 'This') + ' paw triggers';
+  $('linksZoo').textContent = S.zoo;
+  const others = ids().filter(x => x !== id);
+  $('linkChecks').innerHTML = others.length ? others.map(x => { const t = S.animals[x];
+    return `<label style="min-height:68px;cursor:pointer"><span style="display:flex;align-items:center;gap:12px"><span class="avatar" style="width:44px;height:44px">${avatarHtml(t.species)}</span><span style="display:flex;flex-direction:column"><span style="font-family:var(--font-display);font-weight:600;font-size:16px">${esc(label(x, t))}</span><span class="sub">${esc(speciesLabel(t.species))}${t.owner ? ' · ' + esc(isMine(t) ? 'yours' : t.owner + '’s') : ''}${t.online ? '' : ' · offline'}</span></span></span><input type="checkbox" data-id="${esc(x)}" ${S.linkDraft.set.has(x) ? 'checked' : ''} style="width:26px;height:26px;margin:0;accent-color:var(--brand)"></label>`; }).join('')
+    : '<div class="empty">No other animals in this zoo yet.</div>';
+  $('linkChecks').querySelectorAll('input').forEach(cb => cb.onchange = () => { cb.checked ? S.linkDraft.set.add(cb.dataset.id) : S.linkDraft.set.delete(cb.dataset.id); updateLinkCount(); });
+  updateLinkCount();
+}
+function updateLinkCount() {
+  const n = S.linkDraft ? S.linkDraft.set.size : 0, total = Object.keys(S.animals).length - 1;
+  $('linksCount').textContent = n + ' of ' + Math.max(total, 0) + ' animals in your zoo';
+  $('saveLinks').textContent = 'Save ' + n + (n === 1 ? ' link' : ' links');
+}
+$('saveLinks').onclick = () => {
+  const id = S.linkDraft.id, a = A(id); a.links = [...S.linkDraft.set];
+  if (!publishRetained('links/' + id, { ids: a.links })) { alert('Not connected to the zoo yet; try again in a moment.'); return; }
+  S.linkDraft = null; go('#/animal/' + encodeURIComponent(id));
+};
+
+// ======================= settings =======================
+function renderSettings() {
+  $('owner').value = S.owner; $('broker').value = S.broker;
+  $('setZoo').textContent = S.zoo || '–'; $('pairInput').value = '';
+  const all = Object.keys(S.animals).length, mine = Object.values(S.animals).filter(isMine).length;
+  $('setCount').textContent = all ? all + ' · ' + mine + ' yours' : '–';
+  if (validCode(S.zoo)) qrInto($('qrSmall'), shareUrl(S.zoo)); else $('qrSmall').innerHTML = '<span class="sub" style="text-align:center">no zoo yet</span>';
+  $('shareBtn').disabled = $('copyCode').disabled = !validCode(S.zoo);
+}
+$('owner').onchange = () => { S.owner = $('owner').value.trim(); store.set('teddy.owner', S.owner); render(); };
+$('broker').onchange = () => { S.broker = $('broker').value.trim() || 'wss://broker.emqx.io:8084/mqtt'; store.set('teddy.broker', S.broker); connect(S.zoo); };
+$('copyCode').onclick = async () => flash($('copyCode'), await copyText(S.zoo) ? 'Copied' : 'Copy failed');
+$('switchZoo').onclick = () => { const c = $('pairInput').value.trim(); if (!validCode(c)) { alert('A zoo code is 4 to 32 letters or digits.'); return; } saveZoo(c); connect(c); };
+$('pairInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('switchZoo').click(); });
+$('leaveZoo').onclick = () => { if (!confirm('Leave zoo ' + S.zoo + '? Your animals keep working; this phone just stops showing them until you join a zoo again.')) return; store.del('teddy.pair'); connect(''); go('#/'); };
+$('shareBtn').onclick = () => { const url = shareUrl(S.zoo); qrInto($('qrBig'), url); $('shareCode').textContent = S.zoo; $('shareUrlText').textContent = url.replace(/^https?:\/\//, ''); $('shareSheet').hidden = false; };
+$('shareDone').onclick = () => { $('shareSheet').hidden = true; };
+$('shareSheet').addEventListener('click', e => { if (e.target === $('shareSheet')) $('shareSheet').hidden = true; });
+$('copyLink').onclick = async () => flash($('copyLink'), await copyText(shareUrl(S.zoo)) ? 'Copied' : 'Copy failed');
+$('sendLink').onclick = async () => {
+  const url = shareUrl(S.zoo);
+  if (navigator.share) { try { await navigator.share({ title: 'Join my zoo', text: 'Join my Teddy zoo (code ' + S.zoo + ')', url }); } catch (_) {} }
+  else flash($('sendLink'), await copyText(url) ? 'Link copied' : 'Copy failed');
+};
+
+// ======================= join (deep link) =======================
+let joinPrev = null;
+function joinStart(code) {
+  code = (code || '').trim();
+  if (!validCode(code)) { go('#/'); return; }
+  if (S.join === code) return;
+  joinPrev = S.zoo; S.join = code;
+  $('joinCode').textContent = code;
+  connect(code);                       // preview that zoo without saving it
+}
+function joinLeave(keep) {
+  const code = S.join; S.join = null;
+  if (keep) saveZoo(code); else if (joinPrev !== S.zoo) connect(joinPrev);
+  joinPrev = null;
+}
+function renderJoin() {
+  const all = ids();
+  const owners = [...new Set(all.map(id => S.animals[id].owner.trim()).filter(Boolean))];
+  $('joinTitle').textContent = owners.length === 1 ? 'Join ' + owners[0] + '’s zoo?' : 'Join this zoo?';
+  $('joinAvatars').innerHTML = (all.length ? all.slice(0, 3) : ['', '']).map(id => '<div class="avatar">' + avatarHtml(id ? S.animals[id].species : (all.length ? '' : 'elephant')) + '</div>').join('');
+  $('joinList').innerHTML = all.length ? all.map(id => { const a = S.animals[id];
+    return `<div class="mini"><div class="avatar">${avatarHtml(a.species)}</div><div class="main"><span style="font-weight:500">${esc(label(id, a))}</span><span class="sub">${esc(speciesLabel(a.species))}${a.owner ? ' · ' + esc(a.owner) + '’s' : ''}</span></div><span class="dot${a.online ? ' on' : ''}"></span></div>`; }).join('')
+    : '<span class="sub">' + (brokerUp() ? 'No animals in this zoo yet, or they are all asleep.' : 'Looking…') + '</span>';
+  $('joinYes').textContent = owners.length === 1 ? 'Join ' + owners[0] + '’s zoo' : 'Join this zoo';
+}
+$('joinYes').onclick = () => { joinLeave(true); go('#/'); };
+$('joinNo').onclick = () => { joinLeave(false); go('#/'); };
+
+// ======================= add animal (Bluetooth) =======================
+const SERVICE = '0e7a1000-7edd-4bea-a000-5eed12345678', SETUP = '0e7a1003-7edd-4bea-a000-5eed12345678',
+      INFO = '0e7a1004-7edd-4bea-a000-5eed12345678', NETS = '0e7a1005-7edd-4bea-a000-5eed12345678';
+const enc = new TextEncoder(), dec = new TextDecoder();
+const ADD = { step: 1, device: null, setupChr: null, infoChr: null, netsChr: null, id: '', nets: [], scanning: false, pick: null, ssid: '', sent: false, pendingId: '', waitTimer: null, helpTimer: null, species: 'elephant', fail: '' };
+// wifi=fail:<reason> in INFO: the hub's disconnect reason from the last attempt
+const WIFI_REASONS = { 201: 'network not found', 202: 'wrong password', 15: 'wrong password (handshake timed out)', 200: 'the router stopped answering', 203: 'the router refused the connection', 8: 'the router dropped it' };
+function wifiFailText(info) { const m = info.match(/wifi=fail(?::(\d+))?/); if (!m) return ''; const r = +m[1]; return WIFI_REASONS[r] || (r ? 'reason ' + r : 'unknown reason'); }
+const bars = r => r > -55 ? 4 : r > -65 ? 3 : r > -75 ? 2 : 1;
+function addStatus(text, bad, busy) { $('addStatusText').textContent = text; $('addStatus').classList.toggle('bad', !!bad); $('addDot').className = 'dot' + (busy ? ' busy' : ADD.device && ADD.device.gatt.connected ? ' on' : ''); }
+async function bleWrite(chr, bytes) {
+  if (chr.properties.writeWithoutResponse && chr.writeValueWithoutResponse) return chr.writeValueWithoutResponse(bytes);
+  if (chr.writeValueWithResponse) return chr.writeValueWithResponse(bytes);
+  return chr.writeValue(bytes);
+}
+function renderAdd() {
+  $('steps').querySelectorAll('span').forEach((s, i) => s.classList.toggle('on', i < ADD.step));
+  [1, 2, 3, 4].forEach(n => $('add' + n).hidden = n !== ADD.step);
+  if (ADD.step === 1) {
+    $('nobt').hidden = !!navigator.bluetooth; $('btConnect').hidden = !navigator.bluetooth;
+    $('foundCard').hidden = !ADD.id; $('foundName').textContent = 'Teddy ' + ADD.id;
+    $('foundSub').textContent = ADD.fail ? 'Could not join WiFi last time: ' + ADD.fail : 'New · not set up yet';
+    $('foundSub').style.color = ADD.fail ? 'var(--err)' : '';
+    if (!ADD.device) addStatus('not connected', false, false);
+  } else if (ADD.step === 2) {
+    $('addName2').textContent = 'Teddy ' + ADD.id;
+    $('scanning').hidden = !ADD.scanning; $('netsWrap').hidden = ADD.scanning;
+    if (!ADD.scanning) {
+      const rows = ADD.nets.map((n, i) => `<button data-i="${i}" aria-pressed="${ADD.pick === i}"><span class="bars" aria-hidden="true">${[1, 2, 3, 4].map(k => '<i class="' + (bars(n.r) >= k ? 'on' : '') + '" style="height:' + (2 + k * 4) + 'px"></i>').join('')}</span><span style="flex:1;font-weight:${ADD.pick === i ? 600 : 400}">${esc(n.s)}</span>${n.l ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--mute)"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>' : ''}<span class="radio${ADD.pick === i ? ' on' : ''}"></span></button>`);
+      rows.push(`<button data-i="other" aria-pressed="${ADD.pick === 'other'}"><span style="width:24px;display:grid;place-items:center;color:var(--mute);flex:none"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h16"/></svg></span><span style="flex:1;display:flex;flex-direction:column"><span style="font-weight:500">Other</span><span class="sub">${ADD.nets.length ? 'Hidden network · type it in' : 'Nothing found · type it in'}</span></span><span class="radio${ADD.pick === 'other' ? ' on' : ''}"></span></button>`);
+      $('nets').innerHTML = rows.join('');
+      $('nets').querySelectorAll('button').forEach(b => b.onclick = () => { ADD.pick = b.dataset.i === 'other' ? 'other' : +b.dataset.i; renderAdd(); if (ADD.pick === 'other') $('ssid').focus(); else if (ADD.nets[ADD.pick].l) $('pass').focus(); });
+      const picked = ADD.pick !== null;
+      $('wifiForm').hidden = !picked; $('sendSetup').hidden = !picked;
+      if (picked) {
+        const other = ADD.pick === 'other', n = other ? null : ADD.nets[ADD.pick];
+        $('ssidField').hidden = !other; $('passField').hidden = !(other || n.l); $('passFor').textContent = other ? 'it' : n.s;
+        $('passHelp').hidden = !ADD.fail; $('passHelp').textContent = ADD.fail ? 'Last time it could not join: ' + ADD.fail + '. Tap Show to check what you type.' : '';
+        if (!$('pair').value) $('pair').value = validCode(S.zoo) ? S.zoo : genCode();
+      }
+    }
+  } else if (ADD.step === 3) {
+    $('joinSsid').textContent = ADD.ssid; $('joinAvatar').innerHTML = avatarHtml('elephant');
+  } else if (ADD.step === 4) {
+    $('newId').textContent = ADD.id; $('newAvatar').innerHTML = avatarHtml(ADD.species);
+    const a = S.animals[ADD.id];
+    $('newState').innerHTML = a && a.online ? '<span class="heart"></span>online · ' + esc(ADD.ssid) : '<span class="dot busy"></span>waiting for it to come online';
+    if (!$('newOwner').value) $('newOwner').value = S.owner;
+    setSeg($('newSpecies'), ADD.species);
+  }
+}
+$('btConnect').onclick = async () => {
+  try {
+    addStatus('choose “Teddy” in the list…', false, true);
+    const device = await navigator.bluetooth.requestDevice({ filters: [{ services: [SERVICE] }] });
+    ADD.device = device;
+    device.addEventListener('gattserverdisconnected', () => { if (ADD.step < 3) { addStatus('Bluetooth dropped. Connect again.', true, false); ADD.step = 1; ADD.id = ''; renderAdd(); } });
+    addStatus('connecting…', false, true);
+    const gatt = await device.gatt.connect();
+    const svc = await gatt.getPrimaryService(SERVICE);
+    ADD.setupChr = await svc.getCharacteristic(SETUP);
+    ADD.infoChr = await svc.getCharacteristic(INFO);
+    try { ADD.netsChr = await svc.getCharacteristic(NETS); } catch (_) { ADD.netsChr = null; }
+    const info = dec.decode(await ADD.infoChr.readValue());
+    ADD.id = (info.match(/id=(\w+)/) || [])[1] || '?';
+    ADD.fail = wifiFailText(info);
+    addStatus('connected to Teddy ' + ADD.id + (ADD.fail ? ' · WiFi failed last time: ' + ADD.fail : ''), !!ADD.fail, false);
+    try { await ADD.infoChr.startNotifications(); ADD.infoChr.addEventListener('characteristicvaluechanged', e => {
+      const v = dec.decode(e.target.value);
+      if (v.startsWith('ok=saved')) addSaved();
+      else if (v.startsWith('scan=done')) readNets();
+      else if (v.startsWith('scan=failed')) { ADD.nets = []; ADD.scanning = false; ADD.pick = 'other'; renderAdd(); }
+      else if (v.startsWith('error')) addStatus('the animal said: ' + v, true, false);
+    }); } catch (_) {}
+    ADD.step = 2; ADD.pick = null; $('pair').value = '';
+    if (ADD.netsChr) scanNets(); else { ADD.nets = []; ADD.scanning = false; ADD.pick = 'other'; }
+    renderAdd();
+  } catch (e) {
+    addStatus(e.name === 'NotFoundError' ? 'no animal chosen' : 'couldn’t connect: ' + e.message, true, false);
+  }
+};
+async function scanNets() {
+  if (!ADD.setupChr) return;
+  ADD.scanning = true; ADD.pick = null; renderAdd();
+  try { await bleWrite(ADD.setupChr, enc.encode('scan')); }
+  catch (e) { ADD.nets = []; ADD.scanning = false; ADD.pick = 'other'; renderAdd(); }
+}
+async function readNets() {
+  try { ADD.nets = JSON.parse(dec.decode(await ADD.netsChr.readValue())); } catch (_) { ADD.nets = []; }
+  ADD.scanning = false;
+  const saved = store.get('teddy.ssid');
+  const i = ADD.nets.findIndex(n => n.s === saved); ADD.pick = i >= 0 ? i : (ADD.nets.length ? null : 'other');
+  renderAdd();
+}
+$('rescan').onclick = scanNets;
+$('showPass').onclick = () => { const p = $('pass'), show = p.type === 'password'; p.type = show ? 'text' : 'password'; $('showPass').textContent = show ? 'Hide' : 'Show'; p.focus(); };
+$('retryBle').onclick = () => { addLeave(); renderAdd(); };
+$('genCode').onclick = () => { $('pair').value = genCode(); };
+$('sendSetup').onclick = async () => {
+  const other = ADD.pick === 'other';
+  const ssid = other ? $('ssid').value.trim() : ADD.nets[ADD.pick].s, pass = $('pass').value, pair = $('pair').value.trim();
+  if (!ssid) { alert('The network name is empty.'); return; }
+  if (!validCode(pair)) { alert('A zoo code is 4 to 32 letters or digits.'); return; }
+  if (/\t/.test(ssid + pass + pair)) { alert('No tabs allowed.'); return; }
+  $('sendSetup').disabled = true;
+  try {
+    await bleWrite(ADD.setupChr, enc.encode(ssid + '\t' + pass + '\t' + pair));
+    ADD.ssid = ssid; ADD.sent = true; store.set('teddy.ssid', ssid);
+    if (pair !== S.zoo) { saveZoo(pair); connect(pair); }
+    setTimeout(() => { if (ADD.step === 2) addSaved(); }, 2500);   // if the animal's reply never comes, assume it rebooted
+  } catch (e) { alert('Sending failed: ' + e.message); $('sendSetup').disabled = false; }
+};
+$('forgetWifi').onclick = async () => { try { await bleWrite(ADD.setupChr, enc.encode('reset')); alert('WiFi forgotten on Teddy ' + ADD.id + '.'); } catch (e) { alert('Failed: ' + e.message); } };
+function addSaved() {
+  if (ADD.step !== 2) return;
+  $('sendSetup').disabled = false;
+  ADD.step = 3; ADD.pendingId = ADD.id; renderAdd();
+  $('skipWait').hidden = true; $('joinHelp').hidden = true; $('retryBle').hidden = true;
+  const a = S.animals[ADD.id]; if (a && a.online) { addArrived(); return; }
+  ADD.waitTimer = setTimeout(() => { $('skipWait').hidden = false; }, 15000);
+  ADD.helpTimer = setTimeout(() => { $('joinHelp').hidden = false; $('retryBle').hidden = false; }, 30000);
+}
+function addArrived() { if (ADD.step !== 3) return; clearTimeout(ADD.waitTimer); clearTimeout(ADD.helpTimer); ADD.step = 4; renderAdd(); $('newName').focus({ preventScroll: true }); }
+$('skipWait').onclick = addArrived;
+$('newSpecies').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ADD.species = b.dataset.v; renderAdd(); });
+$('finishAdd').onclick = () => {
+  const name = $('newName').value.trim(), owner = $('newOwner').value.trim();
+  if (owner && !S.owner) { S.owner = owner; store.set('teddy.owner', owner); }
+  const a = A(ADD.id); a.name = name; a.species = ADD.species; a.owner = owner;
+  if (!publishRetained('meta/' + ADD.id, { name, species: ADD.species, owner })) alert('Not connected to the zoo yet. Open the animal later and tap Edit to name it.');
+  ADD.pendingId = ''; store.set('teddy.myBear', ADD.id);
+  go('#/animal/' + encodeURIComponent(ADD.id));
+}
+function addLeave() {
+  clearTimeout(ADD.waitTimer); clearTimeout(ADD.helpTimer);
+  if (ADD.device && ADD.device.gatt.connected) { try { ADD.device.gatt.disconnect(); } catch (_) {} }
+  Object.assign(ADD, { step: 1, device: null, setupChr: null, infoChr: null, netsChr: null, id: '', nets: [], scanning: false, pick: null, sent: false, species: 'elephant', fail: '' });
+  $('pass').value = ''; $('pass').type = 'password'; $('showPass').textContent = 'Show'; $('ssid').value = ''; $('pair').value = ''; $('newName').value = ''; $('newOwner').value = ''; $('sendSetup').disabled = false;
+}
+
+// ======================= boot =======================
+const qs = new URLSearchParams(location.search);
+if (qs.get('join')) history.replaceState(null, '', location.pathname + '#/join/' + encodeURIComponent(qs.get('join').trim()));
+else if (qs.get('pair') && !S.zoo) { saveZoo(qs.get('pair').trim()); history.replaceState(null, '', location.pathname + location.hash); }
+if (!location.hash.startsWith('#/join')) connect(S.zoo);
+route();
+</script>
+</body>
+</html>
