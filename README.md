@@ -252,9 +252,11 @@ leave the room, so `teddy_link` works like a commercial IoT gadget:
 While in setup mode the bear still accepts the plain Bluetooth app, so
 `app-ble.html` keeps working for direct control.
 
-**Getting back to setup mode:** in `app-link.html` → Advanced → "Send other
-bear back to setup mode", or type `reset` in the serial monitor. If the saved
-WiFi can't be joined within 20 s the bear falls back to setup mode by itself.
+**Getting back to setup mode:** hold the board's own **BOOT** button for 3
+seconds: the light flashes fast while you hold, then two buzzes and it reboots
+into setup, having forgotten its WiFi and zoo code. Or use the app's "Send back
+to Bluetooth setup", or type `reset` in the serial monitor. If the saved WiFi
+can't be joined within 20 s the bear falls back to setup mode by itself.
 
 **Broker and privacy:** it uses the public test broker `broker.emqx.io` (port
 1883 for the bears, `wss://broker.emqx.io:8084/mqtt` for the page). Anyone who

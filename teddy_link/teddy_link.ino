@@ -23,6 +23,7 @@
      and listens for  teddy/<pair>/cmd/<id>  with {"cmd":"setup"} to forget
      WiFi and go back to SETUP mode.
 
+     BOOT BUTTON (the board's own, GPIO 0): hold 3 s to forget WiFi and return to setup mode.
      PAW BUTTON (GPIO 27 to GND, internal pull-up): while squeezed, the bear
      sends {"from":"<me>","to":"<id>","motor":1} every 400 ms to every id in
      its link list, and motor 0 on release. The link list is whatever the app
@@ -50,6 +51,8 @@ const char* DEVICE_NAME = "Teddy";
 const int LED_PIN   = 25;
 const int MOTOR_PIN = 26;
 const int PAW_PIN   = 27;   // push button to GND; internal pull-up
+const int RESET_BTN_PIN  = 0;    // the board's own BOOT button: hold 3 s to forget WiFi and go back to Bluetooth setup
+const unsigned long BOOT_HOLD_MS = 3000;
 
 const unsigned long MOTOR_TIMEOUT_MS = 1200;   // stop if "hold" messages stop
 const unsigned long PULSE_PERIOD_MS  = 3000;   // one slow breath
@@ -480,6 +483,7 @@ void setup() {
   pinMode(MOTOR_PIN, OUTPUT);
   setMotor(false);
   pinMode(PAW_PIN, INPUT_PULLUP);
+  pinMode(RESET_BTN_PIN, INPUT_PULLUP);
 
   uint8_t mac[6];
   WiFi.macAddress(mac);
@@ -542,6 +546,7 @@ void loop() {
 
   if (motorOn && millis() - motorLastPing > MOTOR_TIMEOUT_MS) setMotor(false);
   updatePaw();
+  updateBootButton();
   updatePulse();
   delay(10);
 }
@@ -552,6 +557,29 @@ void sendPaw(bool on) {
   for (int i = 0; i < nLinks; i++) {
     String m = "{\"from\":\"" + bearId + "\",\"to\":\"" + links[i] + "\",\"motor\":" + (on ? "1" : "0") + "}";
     mqtt.publish(topicTouch.c_str(), m.c_str());
+  }
+}
+
+// BOOT button (GPIO 0) held for BOOT_HOLD_MS: forget WiFi + zoo code and reboot into
+// Bluetooth setup mode, the same as "Send back to Bluetooth setup" in the app or
+// "reset" on serial. The light flashes fast while you hold; let go early and nothing happens.
+unsigned long bootDownAt = 0;
+void updateBootButton() {
+  bool down = digitalRead(RESET_BTN_PIN) == LOW;
+  if (!down) {
+    if (bootDownAt) { bootDownAt = 0; ledWrite(ledMode == LED_STEADY ? 255 : 0); }
+    return;
+  }
+  if (!bootDownAt) { bootDownAt = millis(); return; }
+  unsigned long held = millis() - bootDownAt;
+  ledWrite((held / 100) % 2 ? 255 : 0);                 // fast flash as feedback
+  if (held >= BOOT_HOLD_MS) {
+    Serial.println("BOOT held: forgetting WiFi and zoo code, rebooting into SETUP mode");
+    ledWrite(255); setMotor(true); delay(120); setMotor(false); delay(120);
+    setMotor(true); delay(120); setMotor(false);           // two buzzes = done
+    clearSettings();
+    delay(100);
+    ESP.restart();
   }
 }
 
