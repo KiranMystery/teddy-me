@@ -84,16 +84,23 @@ Pin labels only help if they match your board. The 30-pin "DevKit V1" and the
 for one is wrong for the other (this is what held up the motor on the bench:
 a 38-pin board in a 30-pin adapter). The reliable method: get the LED working
 on GPIO 25 first, then count from that pin. Hold the board USB socket down,
-antenna up; GPIO 25 is the **9th pin from the antenna end** on both boards,
-and in that same column:
+antenna up, and look at the column that starts with **EN** at the antenna end
+(the one with the EN button at the USB end). Counting from the antenna end:
 
-| 30-pin DevKit V1 (15 per side) | 38-pin DevKitC (19 per side) |
-|---|---|
-| 1 = **3V3** | 1 = **3V3** |
-| 9 = **GPIO 25** | 9 = **GPIO 25** |
-| 10 = **GPIO 26** | 10 = **GPIO 26** |
-| 14 = **GND** | 14 = **GND** |
-| 5V is **VIN**, top of the *other* column | 19 = **5V** (bottom, by the USB socket) |
+| | 30-pin DevKit V1 (15 per side) | 38-pin DevKitC (19 per side) |
+|---|---|---|
+| EN column, antenna end | 1 = **EN** | 1 = **3V3**, 2 = EN |
+| **GPIO 25** (LED) | **8th** | **9th** |
+| **GPIO 26** (motor) | **9th** | **10th** |
+| **GPIO 27** (paw button) | **10th** | **11th** |
+| **GND** | 14th | 14th |
+| EN column, USB end | 15 = **VIN** (5 V) | 19 = **5V** |
+| **3V3** | USB end of the *other* column (GND just above it) | antenna end of the EN column (pin 1) |
+
+In short: on the 30-pin board 25-26-27 are the 8th, 9th and 10th pins; on the
+38-pin board everything in that column is shifted down one because 3V3 comes
+first. Most 30-pin boards print D25 / D26 / D27 on the silkscreen, and those
+labels are right; it was only the mismatched adapter that lied.
 
 On the 38-pin board never use pins 16–18 of that column (D2, D3, CMD) or the
 last three of the other column (D1, D0, CLK): they're the flash chip.
