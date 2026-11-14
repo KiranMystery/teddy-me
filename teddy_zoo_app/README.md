@@ -92,6 +92,50 @@ For the QR / share link to open the app instead of the browser:
 Without them the link still opens the web app (`zoo.html?join=<code>` via the
 host rewrite rule in the main README), which is the intended fallback.
 
+## Put it on your own phone
+
+**iPhone (development install, no App Store needed)**
+
+The project is already set to Kiran's team (`3UQ7X2PFUR`, automatic signing)
+and Xcode's wildcard development profile on this Mac already lists Kiran's
+iPhone, so a debug build signs offline:
+
+1. Plug the iPhone in with a cable, unlock it and tap **Trust** if asked.
+   Settings → Privacy & Security → **Developer Mode** must be on (the phone
+   restarts once).
+2. From `teddy_zoo_app/`:
+   ```bash
+   flutter run --release -d "kiran's iPhone"
+   ```
+   (`flutter devices` prints the exact name or UDID.) `flutter run` alone gives
+   a debug build with hot reload; both install the same app.
+3. First launch: Settings → VPN & Device Management → trust the developer
+   certificate if iOS asks. Bluetooth permission is asked the first time you
+   tap **Connect over Bluetooth**.
+
+A development-signed app stops launching after the profile expires (one year
+on a paid team); run it again from the Mac to refresh it.
+
+The Associated Domains entitlement (universal links) is only attached to
+**Release** builds (`CODE_SIGN_ENTITLEMENTS` on the Release configuration in
+`Runner.xcodeproj`). The first Release build must register that capability on
+the App ID, which only Xcode signed in to the Apple account can do: open
+`ios/Runner.xcworkspace` once, select Runner → Signing & Capabilities, confirm
+the team and let Xcode fix the profile, then `flutter build ipa --release` or
+`flutter run --release` works from the terminal too. Debug and Profile builds
+skip the entitlement so they sign with the plain wildcard profile.
+
+**Android phone (sideload)**
+
+```bash
+flutter build apk --release
+```
+produces `build/app/outputs/flutter-apk/app-release.apk` (signed with the
+debug key, fine for your own phones). Copy it to the phone (AirDrop-equivalent,
+USB, or `adb install -r build/app/outputs/flutter-apk/app-release.apk` with
+USB debugging on) and allow "install from this source" when asked. Android
+asks for the Nearby devices (Bluetooth) permission the first time you scan.
+
 ## Store builds
 
 Ids: bundle id / application id `uk.iome.teddyzoo`, display name "Teddy zoo".
