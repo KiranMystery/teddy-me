@@ -34,7 +34,7 @@ parts = [
  ["esp_btn",    "",                                   "#3b3f47", "carrier"],
  ["r1",         "R1 220 ohm (LED)",                   "#d9b382", "carrier"],
  ["r2",         "R2 1 k (base)",                      "#d9b382", "carrier"],
- ["r3",         "R3 15 ohm (motor, optional)",        "#d9b382", "carrier"],
+ ["r3",         "R3 15-22 ohm (motor +)",             "#d9b382", "carrier"],
  ["q1",         "Q1 NPN transistor",                  "#101014", "carrier"],
  ["d1",         "D1 1N4148 (stripe to 5 V)",          "#d8532b", "carrier"],
  ["c1",         "C1 100-470 uF",                      "#27407e", "carrier"],
@@ -42,11 +42,12 @@ parts = [
  ["j_motor",    "MOTOR connector",                    "#f1ede0", "carrier"],
  ["j_led",      "LED connector",                      "#f1ede0", "carrier"],
  ["j_paw",      "PAW connector",                      "#f1ede0", "carrier"],
- ["screws_m2",  "4 x M2x6 self-tapping screws",       "#b9bec6", "carrier"],
- ["pb_pcb",     "PowerBoost 1000C",                   "#1d58b0", "power"],
- ["pb_usb",     "Charging port (micro-USB)",          "#d9dce1", "power"],
- ["pb_jst",     "Battery socket + plug",              "#efe6c8", "power"],
- ["pb_parts",   "",                                   "#2a2c31", "power"],
+ ["screws_m2",  "6 x M2x5 self-tapping screws",       "#b9bec6", "carrier"],
+ ["chg_pcb",    "USB-C charger + 5 V boost (Adafruit 6106)", "#20304f", "power"],
+ ["chg_usb",    "Charging port (USB-C)",              "#d9dce1", "power"],
+ ["chg_jst",    "Battery socket + plug",              "#efe6c8", "power"],
+ ["chg_term",   "5 V out screw terminal",             "#2e7fd6", "power"],
+ ["chg_parts",  "",                                   "#2a2c31", "power"],
  ["battery",    "LiPo cell 3.7 V 2000 mAh",           "#8d98a8", "power"],
  ["switch",     "Slide switch (on/off)",              "#3d4250", "power"],
  ["sw_lever",   "",                                   "#f2f2f2", "power"],
@@ -63,7 +64,8 @@ parts = [
  ["w_mot",      "Motor -, to collector (purple)",     "#8b3fd6", "wires"],
  ["w_paw",      "Paw button, GPIO 27 (blue)",         "#1f6fe0", "wires"],
  ["plug_esp",   "USB plug in the ESP32 (check only)", "#777777", "check"],
- ["plug_pb",    "USB plug in the charger (check only)", "#777777", "check"],
+ ["plug_chg",   "USB-C plug in the charger (check only)", "#777777", "check"],
+ ["keepout",    "3 mm of solder joints and links under the carrier (check only)", "#cc3333", "check"],
 ];
 if (dump) for (p = parts) echo(str("PART|", p[0], "|", p[1], "|", p[2], "|", p[3]));
 
@@ -94,7 +96,7 @@ module wire(pts, d = wd) {
 }
 module P(name) {
     if (show == name || (show == "all" && name != "lid" && name != "lid_screws"
-                         && name != "plug_esp" && name != "plug_pb")
+                         && name != "plug_esp" && name != "plug_chg" && name != "keepout")
         || (show == "all" && with_lid && (name == "lid" || name == "lid_screws")))
         for (p = parts) if (p[0] == name) color(p[2]) children();
 }
@@ -168,7 +170,7 @@ P("j_motor") jst(3, 4, 5 + ro);
 P("j_led")   jst(1, 2, r25);
 P("j_paw")   jst(1, 2, 17 + ro);
 
-module m2(x, y, z, len = 6) translate([x, y, z]) {
+module m2(x, y, z, len = 5) translate([x, y, z]) {
     cylinder(d = 3.8, h = 1.4, $fn = 20);
     translate([0, 0, -len]) cylinder(d = 1.6, h = len + 0.01, $fn = 12);
 }
@@ -177,28 +179,28 @@ module m2(x, y, z, len = 6) translate([x, y, z]) {
 // holes; that edge is held by the fins under the lid instead.
 P("screws_m2") {
     for (h = perf_hole_xy) if (h[1] < py0 + perf[1]/2) m2(h[0], h[1], zt);
-    for (h = pb_holes) m2(pb_x0 + h[0], pb_y0 + h[1], pb_z + pb[2]);
+    for (h = chg_holes) m2(chg_x0 + h[0], chg_y0 + h[1], chg_z + chg[2]);
 }
 
 // ------------------------------------------------------------------
-//  Power: PowerBoost, battery, switch
+//  Power: charger board, battery, switch
 // ------------------------------------------------------------------
-pb_top = pb_z + pb[2];
-P("pb_pcb") difference() {
-    translate([pb_x0, pb_y0, pb_z]) linear_extrude(pb[2]) rrect(0, 0, pb[0], pb[1], 2.2);
-    for (h = pb_holes) translate([pb_x0 + h[0], pb_y0 + h[1], pb_z - 1]) cylinder(d = 2.5, h = 4, $fn = 16);
+chg_top = chg_z + chg[2];
+function cb(x, y, z = 0) = [chg_x0 + x, chg_y0 + y, chg_top + z];   // point on the charger board
+P("chg_pcb") difference() {
+    translate([chg_x0, chg_y0, chg_z]) linear_extrude(chg[2]) rrect(0, 0, chg[0], chg[1], 2.54);
+    for (h = chg_holes) translate([chg_x0 + h[0], chg_y0 + h[1], chg_z - 1]) cylinder(d = 2.5, h = 4, $fn = 16);
 }
-P("pb_usb") translate([pb_x0 - pb_usb_overhang, up_y - 3.75, up_z - 1.3]) cube([5.6, 7.5, 2.6]);
-jst_b = [6.67, 14.80, 8.0, 7.5];                      // x, y, length, depth on the board
-P("pb_jst") {
-    translate([pb_x0 + jst_b[0], pb_y0 + jst_b[1], pb_top]) cube([jst_b[2], jst_b[3], pb_top_h]);
-    translate([pb_x0 + jst_b[0] + 1, pb_y0 + jst_b[1] + jst_b[3], pb_top + 0.8]) cube([6, 2.5, 4.2]);
+P("chg_usb") translate([chg_x0 - chg_usb_overhang, up_y - 4.47, up_z - 1.63]) cube([7.35, 8.94, 3.26]);
+P("chg_jst") {
+    translate(cb(chg_jst[0], chg_jst[1])) cube([chg_jst[2], chg_jst[3], 6.0]);
+    translate(cb(chg_jst[0] + 1, chg_jst[1] + chg_jst[3], 0.8)) cube([6, 2.5, 4.2]);   // battery plug
 }
-P("pb_parts") {
-    translate([pb_x0 + 25, pb_y0 + 14.5, pb_top]) cube([5, 5, 3]);      // inductor
-    translate([pb_x0 + 16.5, pb_y0 + 4, pb_top]) cube([4, 4, 1]);
-    translate([pb_x0 + 27, pb_y0 + 5, pb_top]) cube([4, 4, 1]);
-    for (i = [0 : 7]) translate([pb_x0 + 12.827 + i*2.54, pb_y0 + 1.27, pb_top]) cylinder(d = 1.7, h = 0.15, $fn = 12);
+P("chg_term") translate(cb(chg_term[0], chg_term[1])) cube([chg_term[2], chg_term[3], chg_top_h]);
+P("chg_parts") {
+    translate(cb(18.96, 13.69)) cube([5, 5, 4.5]);                      // inductor
+    translate(cb(13.2, 6.2)) cube([3, 3, 1]);
+    for (x = chg_pad_x) translate(cb(x, chg_pad_y)) cylinder(d = 1.7, h = 0.15, $fn = 12);
 }
 batt_x0 = blk + batt_lead_room;
 batt_ym = batt_y0 + batt_slot/2;
@@ -239,26 +241,31 @@ P("w_paw") wire([hu(8, r27), hu(8, r27, 3.2), hu(2, 17 + ro, 3.2), hu(2, 17 + ro
 //  Power and switch wiring
 // ------------------------------------------------------------------
 sw_pin_x = sw_x + sw_body[2] + 3.0;
-pad_y = pb_y0 + 1.27;
-function pad_x(i) = pb_x0 + 12.827 + (i - 1)*2.54;    // header pad 1..8: USB BAT VS EN GND LBO GND 5V
+pad_y = chg_y0 + chg_pad_y;
+pad_g  = chg_x0 + chg_pad_x[4];                       // G pad
+pad_en = chg_x0 + chg_pad_x[7];                       // EN pad
 gut_y = 2.6;                                          // where wires climb in the gutter
 z_pw_r = H_in - 2.3;  z_pw_k = H_in - 3.5;            // 5 V pair crossing above the ESP32
-batt_plug = [pb_x0 + jst_b[0] + 4, pb_y0 + jst_b[1] + jst_b[3] + 2.5, pb_top + 2.9];
-
-// PowerBoost 5V / GND pads -> up the gutter -> across the USB end of the ESP32
-// -> the 5 V IN plug
 xt_k = blk + 1.2;  xt_r = blk + 2.8;                  // where the pair turns out of the gutter
-P("w_5v") wire([[pad_x(8), pad_y, pb_top + 0.1], [pad_x(8), pad_y, 9.5], [pad_x(8), gut_y, 9.5],
-                [pad_x(8), gut_y, z_pw_r], [xt_r, gut_y, z_pw_r], [xt_r, hy(2), z_pw_r],
+term_x = chg_x0 + chg_term[0] + chg_term[2];          // wire-entry face of the screw terminal
+term_z = chg_top + 3.5;
+tp = [chg_y0 + chg_term_pads[0][1], chg_y0 + chg_term_pads[1][1]];   // + and - ways
+rise_r = term_x + 2.6;  rise_k = term_x + 1.2;        // where each wire climbs the gutter
+batt_plug = [chg_x0 + chg_jst[0] + 4, chg_y0 + chg_jst[1] + chg_jst[3] + 2.5, chg_top + 2.9];
+under = 1.2;                                          // switch wires run under the charger board
+
+// screw terminal + / - -> up the gutter -> across the USB end of the ESP32
+// -> the 5 V IN plug
+P("w_5v") wire([[term_x - 2, tp[0], term_z], [rise_r, tp[0], term_z], [rise_r, gut_y, term_z],
+                [rise_r, gut_y, z_pw_r], [xt_r, gut_y, z_pw_r], [xt_r, hy(2), z_pw_r],
                 [hx(24) + 0.9, hy(2), z_pw_r], [hx(24) + 0.9, hy(2), zt + jst_top]]);
 P("w_gnd") {
-    wire([[pad_x(7), pad_y, pb_top + 0.1], [pad_x(7), pad_y, 11], [pad_x(7), gut_y, 11],
-          [pad_x(7), gut_y, z_pw_k], [xt_k, gut_y, z_pw_k], [xt_k, hy(1), z_pw_k],
-          [hx(24) - 0.9, hy(1), z_pw_k], [hx(24) - 0.9, hy(1), zt + jst_top]]);
-    // switch outer pin -> PowerBoost GND pad
-    wire([[sw_pin_x, sw_yc + 2.5, sw_zc], [sw_pin_x + 0.6, sw_yc + 2.5, sw_zc], [sw_pin_x + 0.6, sw_yc + 2.5, 4.3],
-          [15, sw_yc + 2.5, 4.3], [pad_x(5), 39, 4.3], [pad_x(5), 36.5, 4.3], [pad_x(5), 36.5, 9.5],
-          [pad_x(5), pad_y, 9.5], [pad_x(5), pad_y, pb_top + 0.1]]);
+    wire([[term_x - 2, tp[1], term_z], [rise_k, tp[1], term_z], [rise_k, tp[1], term_z + 1.6],
+          [rise_k, gut_y, term_z + 1.6], [rise_k, gut_y, z_pw_k], [xt_k, gut_y, z_pw_k],
+          [xt_k, hy(1), z_pw_k], [hx(24) - 0.9, hy(1), z_pw_k], [hx(24) - 0.9, hy(1), zt + jst_top]]);
+    // switch centre pin -> under the charger board -> its G pad
+    wire([[sw_pin_x, sw_yc, sw_zc], [sw_pin_x + 0.6, sw_yc, sw_zc], [sw_pin_x + 0.6, sw_yc, under],
+          [pad_g, chg_y0 + chg[1] + 3, under], [pad_g, pad_y, under], [pad_g, pad_y, chg_top + 0.4]]);
     // battery -
     wire([[batt_x0, batt_ym, 7.0], [8.6, batt_ym, 7.0], [8.6, div_y0 - 1.6, 7.0],
           [batt_plug[0] - 1, div_y0 - 1.6, 7.0], [batt_plug[0] - 1, batt_plug[1], batt_plug[2]]], 1.3);
@@ -266,10 +273,10 @@ P("w_gnd") {
 P("w_batt")
     wire([[batt_x0, batt_ym, 8.4], [8.6, batt_ym, 8.4], [8.6, div_y0 - 1.6, 8.4],
           [batt_plug[0] + 1, div_y0 - 1.6, 8.4], [batt_plug[0] + 1, batt_plug[1], batt_plug[2]]], 1.3);
+// switch outer pin -> under the charger board -> its EN pad
 P("w_en")
-    wire([[sw_pin_x, sw_yc, sw_zc], [sw_pin_x + 0.6, sw_yc, sw_zc], [sw_pin_x + 0.6, sw_yc, 4.3],
-          [15, sw_yc, 4.3], [pad_x(4), 39, 4.3], [pad_x(4), 36.5, 4.3], [pad_x(4), 36.5, 9.5],
-          [pad_x(4), pad_y, 9.5], [pad_x(4), pad_y, pb_top + 0.1]]);
+    wire([[sw_pin_x, sw_yc + 2.5, sw_zc], [sw_pin_x + 0.6, sw_yc + 2.5, sw_zc], [sw_pin_x + 0.6, sw_yc + 2.5, under],
+          [pad_en, chg_y0 + chg[1] + 3, under], [pad_en, pad_y, under], [pad_en, pad_y, chg_top + 0.4]]);
 
 // ------------------------------------------------------------------
 //  The three leads (two wires each, stacked where the lid pinches them)
@@ -327,4 +334,14 @@ module usb_plug(mouth_x, yc, zc, body) {
     translate([mouth_x - 1.0 - 25, yc - body[0]/2, zc - body[1]/2]) cube([25, body[0], body[1]]);
 }
 P("plug_esp") usb_plug(esp_mouth_x, ue_y, ue_z, esp_usb_type == "c" ? [12.35, 6.5] : [10.6, 8.5]);
-P("plug_pb")  usb_plug(pb_x0 - pb_usb_overhang, up_y, up_z, [10.6, 8.5]);
+P("plug_chg") usb_plug(chg_x0 - chg_usb_overhang, up_y, up_z, [12.35, 6.5]);
+
+// Check-only: the space the carrier's own solder joints and under-board links
+// need, 3 mm deep, under every hole column that carries a joint: columns 1 to 8
+// (parts and the EN-side header) and columns 17 and 18 (the other header, on
+// either board width). Between them, under the ESP32, the board is bare, and
+// that is where the charger's screw terminal sits.
+P("keepout") {
+    box(px0, px0 + perf[0], hy(8) - 1.3, py0 + perf[1], zs - 3, zs - 0.01);
+    box(px0, px0 + perf[0], hy(18) - 1.3, hy(17) + 1.3, zs - 3, zs - 0.01);
+}

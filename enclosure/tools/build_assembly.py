@@ -36,11 +36,11 @@ SCAD = os.path.join(ROOT, "assembly.scad")
 
 # Which parts each wire net is allowed to touch (its solder joints and plugs).
 NET_ENDS = {
-    "w_5v":   {"pb_pcb", "pb_parts", "j_pwr", "perfboard"},
-    "w_gnd":  {"pb_pcb", "pb_parts", "j_pwr", "j_led", "j_paw", "switch", "battery", "pb_jst",
+    "w_5v":   {"chg_term", "j_pwr", "perfboard"},
+    "w_gnd":  {"chg_pcb", "chg_parts", "chg_term", "j_pwr", "j_led", "j_paw", "switch", "battery", "chg_jst",
                "led", "button", "perfboard"},
-    "w_batt": {"battery", "pb_jst"},
-    "w_en":   {"switch", "pb_pcb", "pb_parts"},
+    "w_batt": {"battery", "chg_jst"},
+    "w_en":   {"switch", "chg_pcb", "chg_parts"},
     "w_led":  {"j_led", "led", "perfboard"},
     "w_drv":  {"perfboard"},
     "w_motp": {"j_motor", "motor", "perfboard"},
@@ -51,7 +51,8 @@ NET_ENDS = {
 MATED = {
     frozenset(p) for p in [
         ("esp_pcb", "headers"), ("esp_pcb", "esp_shield"), ("esp_pcb", "esp_usb"), ("esp_pcb", "esp_btn"),
-        ("pb_pcb", "pb_usb"), ("pb_pcb", "pb_jst"), ("pb_pcb", "pb_parts"), ("switch", "sw_lever"),
+        ("chg_pcb", "chg_usb"), ("chg_pcb", "chg_jst"), ("chg_pcb", "chg_parts"), ("chg_pcb", "chg_term"),
+        ("switch", "sw_lever"),
     ]
 }
 
@@ -158,7 +159,7 @@ def main():
 
     names = [p["name"] for p in parts]
     wires = [n for n in names if n.startswith("w_")]
-    plugs = [n for n in names if n.startswith("plug_")]
+    plugs = [n for n in names if n.startswith("plug_")] + ["keepout"]
     box = ["body", "lid"]
     solids = [n for n in names if n not in wires + plugs + box + ["lid_screws"]]
 
@@ -194,6 +195,17 @@ def main():
     if v > 1e-3:
         problems.append("a lid screw hits a part")
 
+    # (the carrier's own corner screws are left out: they pass through the board's
+    #  bare corners, outside the hole grid, into the posts)
+    hits = [(s, vol("keepout", s)) for s in solids if s != "screws_m2"]
+    bad = [f"{s} ({v:.2f} mm3)" for s, v in hits if v > 1e-3]
+    say(f"   3 mm joint-and-link space under the carrier against every solid part: "
+        f"{', '.join(bad) or 'nothing intrudes'}")
+    for b in bad:
+        problems.append(f"{b} is in the space the carrier's solder joints need")
+    g = min_gap(meshes["chg_term"], meshes["perfboard"])
+    say(f"   charger screw terminal to the bare underside of the carrier: {g:.2f} mm")
+
     say()
     say("3. Wires (may only touch the parts they are joined to)")
     for w in wires:
@@ -210,7 +222,7 @@ def main():
 
     say()
     say("4. Openings line up (worst-case plug body pushed fully home, lever in both positions)")
-    for pl, sock in (("plug_esp", "esp_usb"), ("plug_pb", "pb_usb")):
+    for pl, sock in (("plug_esp", "esp_usb"), ("plug_chg", "chg_usb")):
         v = vol(pl, "body") + vol(pl, "lid")
         g = min(min_gap(meshes[pl], meshes["body"]), min_gap(meshes[pl], meshes["lid"]))
         pc, sc = meshes[pl].bounds.mean(axis=0), meshes[sock].bounds.mean(axis=0)

@@ -1,8 +1,9 @@
 # Teddy electronics box
 
 A 3D-printable box for the bear's electronics: the carrier perfboard with the
-ESP32, the PowerBoost 1000C charger, a LiPo cell in its own compartment, an
-on/off switch, and exits for the motor, LED and paw-button leads.
+ESP32, the USB-C charger board (Adafruit bq25185 charger + 5 V boost, product
+6106), a LiPo cell in its own compartment, an on/off switch, and exits for the
+motor, LED and paw-button leads.
 
 ![Everything wired in the box](renders/assembly-overview.png)
 
@@ -30,14 +31,16 @@ longer because that board overhangs the end of the perfboard (see below).
 ![Top view](renders/assembly-top.png)
 
 - **Port wall** (left in the picture): ESP32 USB for reflashing at the top
-  (marked PROG), charging micro-USB below it (marked CHARGE), slide switch in a
-  finger recess beside it. The lever ends 0.2 mm below the wall surface, so
+  (marked PROG), the charger's USB-C socket below it (marked CHARGE), slide
+  switch in a finger recess beside it. The lever ends 0.2 mm below the wall surface, so
   nothing sticks out into the stuffing.
-- **Carrier** sits on four 15 mm posts. The **PowerBoost and the switch are
-  underneath it**, the PowerBoost on two screw standoffs so its socket is
-  0.2 mm behind the wall.
+- **Carrier** sits on four 15 mm posts. The **charger board and the switch
+  are underneath it**. The charger is on four screw standoffs with its USB-C
+  socket 0.2 mm behind the wall. Its 5 V screw terminal, the tallest part,
+  sits under the ESP32 between the two header rows, where the carrier has no
+  solder joints; 1.9 mm of air is left above a 9 mm terminal.
 - **Battery** stands on its long edge in a walled slot on the far side from the
-  ESP32. Its lead reaches the PowerBoost through a rounded window. The lid
+  ESP32. Its lead reaches the charger through a rounded window. The lid
   screws go into blind holes in solid corner blocks, so no screw tip can reach
   the cell, and the motor pocket is on the opposite wall.
 - **Lead exits** are on the wall the antenna end faces, off to the battery side
@@ -89,6 +92,22 @@ The PNG renders use Google Chrome in headless mode. Check reports land in
 Everything is in the parameter block at the top of `enclosure.scad`. These are
 the ones that depend on a part you have in your hand:
 
+Check these first. They are the charger board's heights, which are not in
+Adafruit's board file, so they are estimates:
+
+| Parameter | Default | Measure |
+|---|---|---|
+| `chg_top_h` | 9.0 | Height of the 5 V screw terminal above the charger board. Generic 3.5 mm blocks run 8.5 to 10 mm. Anything up to 10 mm fits as is; taller needs `perf_standoff_h` raised |
+| `chg_usb_h` | 1.65 | USB-C socket centre above the charger board (half of the 3.26 mm shell in the socket maker's datasheet) |
+| `chg[2]` | 1.6 | Charger board thickness |
+
+The charger's outline, four mounting holes, socket and pad positions come from
+Adafruit's board file (`chg`, `chg_holes`, `chg_usb_cy`, `chg_usb_overhang`,
+`chg_jst`, `chg_term`, `chg_pad_x`). One check with calipers is enough: the
+board should be 29.2 x 19.05 mm with holes 24.13 x 13.97 mm apart.
+
+The rest depend on parts you have in your hand:
+
 | Parameter | Default | Measure |
 |---|---|---|
 | `board` | `"38pin"` | `"38pin"` or `"30pin"`: picks the ESP32 row below |
@@ -96,12 +115,10 @@ the ones that depend on a part you have in your hand:
 | `perf_grid_x0`, `perf_grid_y0` | 5.79, 3.41 | Centre of the first hole from the short edge and from the long edge |
 | `perf_hole_inset` | 2.0 | Corner mounting holes: centre to each edge. Set to match, or ignore the screws and rely on the lid fins |
 | `esp_38`, `esp_30` | see file | Overall length, PCB length, width, row-to-row spacing, pins per side, **USB-end pin to the USB end of the board** |
-| `esp_usb_type` | `"micro"` | `"micro"` or `"c"`: the socket on your dev board |
-| `esp_usb_overhang` | 1.0 | How far the socket sticks out past the board end |
+| `esp_usb_type` | `"micro"` | `"micro"` or `"c"`: the socket on your ESP32 dev board |
+| `esp_usb_overhang` | 1.0 | How far that socket sticks out past the board end |
 | `header_h`, `pin_spacer_h`, `esp_pcb_t` | 8.5, 2.5, 1.6 | Female header height, the plastic strip on the ESP32's pins, board thickness. Together they set the height of the PROG cut-out |
 | `esp_usb_h_micro` / `_c` | 1.3 / 1.7 | Socket centre above the ESP32 board |
-| `pb`, `pb_holes`, `pb_usb_cy`, `pb_usb_overhang` | from Adafruit's board file | One check with calipers: board 36.1 x 22.9, holes 17.8 apart |
-| `pb_usb_h`, `pb_top_h` | 1.3, 6.0 | Charger socket centre above its board; tallest part on the board (the JST socket) |
 | `batt` | 60 x 36 x 7 | Battery length, width, thickness. The box grows with it |
 | `sw_body`, `sw_lever_len`, `sw_lever_w`, `sw_travel` | 8.5 x 3.5 x 3.5, 4, 1.5, 2 | Slide switch body, lever length, lever width, travel |
 | `n_leads`, `wire_d` | 3, 1.4 | Leads leaving the box, and the outside diameter of **one** wire. The exit slot is one wire wide and two wires deep |
@@ -111,7 +128,7 @@ the ones that depend on a part you have in your hand:
 
 Quick dry fit before committing to a 5-hour print: print the first 12 mm of the
 body (cut it in the slicer). That gives the charging cut-out, the switch pocket,
-the PowerBoost standoffs and the battery slot width.
+the charger standoffs and the battery slot width.
 
 ## Print settings
 
@@ -122,7 +139,8 @@ the PowerBoost standoffs and the battery slot width.
 - **Orientation**: as exported. Body with its open side up, lid with its outer
   face on the bed and the fins pointing up.
 - **Supports**: none. The only overhangs are bridges: the two USB cut-outs
-  (12.4 mm), the switch recess (18 mm) and the battery lead window (12 mm).
+  (12.4 and 13.6 mm), the switch recess (18 mm) and the battery lead window
+  (12 mm).
   The edges that touch the bed are a 45° chamfer blending into a round, so
   they print cleanly.
 - About 61 g (body) and 24 g (lid) if printed solid; less with infill.
@@ -130,24 +148,27 @@ the PowerBoost standoffs and the battery slot width.
 ## Hardware
 
 - 4 x M3 x 10 countersunk screws (lid). No longer than 12 mm.
-- 4 x M2 x 6 pan-head self-tapping screws (2 carrier, 2 PowerBoost).
+- 6 x M2 x 5 pan-head self-tapping screws (4 charger board, 2 carrier). Not
+  longer: the charger's holes stop 0.7 mm above the outside of the floor.
 - A strip of thin foam for the battery slot, and hot glue for the switch.
 
 ## Assembly order
 
-1. **Dry fit**: carrier in its bay, PowerBoost on its standoffs, battery in its
-   slot, a USB plug through each cut-out.
+1. **Dry fit**: carrier in its bay, charger board on its standoffs, battery in
+   its slot, a USB plug through each cut-out.
 2. **Switch**: solder two wires (about 7 cm) to the centre pin and one outer
    pin. Slide the lever to one end, lower the switch into its pocket with the
    lever poking out through the slot, lever towards the battery side on the way
    down. Fix it with hot glue over the top, which also closes the slot.
-3. **PowerBoost**: do not fit the big USB-A socket. Solder the switch wires to
-   **EN** and **GND**, and a 12 cm red/black pair to **5V** and **GND** with a
-   JST-XH plug on the other end.
+3. **Charger board**: solder the two switch wires to the **EN** and **G**
+   pads. Clamp a 14 cm red/black pair in the screw terminal (**+** red, **–**
+   black; the wires enter from the end away from the USB-C socket) and put a
+   JST-XH plug on its other end. Do this now: the terminal's screws are under
+   the carrier once the box is built.
 4. **Motor**, if it lives in the box: stick it in the pocket on the gutter wall.
 5. **Battery**: thread its plug through the window into the main bay, plug it
-   into the PowerBoost (switch off: EN joined to GND), lower the PowerBoost onto
-   its standoffs and fit two M2 screws. Lower the cell into its slot with the
+   into the charger (switch off: EN joined to G), lower the charger onto its
+   four standoffs and fit four M2 screws. Lower the cell into its slot with the
    foam strip.
 6. **Carrier**, without the ESP32: run the 5 V pair up the gutter, lower the
    board onto its posts, fit the two M2 screws on the gutter-side corners.
@@ -157,8 +178,8 @@ the PowerBoost standoffs and the battery slot width.
    a good extra stop.
 9. **Lid**: check no wire lies on the wall tops, then four M3 screws, snug only.
 
-To get at the battery plug later, undo the two carrier screws and lift the
-carrier.
+To get at the battery plug or the screw terminal later, undo the two carrier
+screws and lift the carrier.
 
 ## Checks that were run
 
@@ -170,10 +191,15 @@ From `./build.sh all`, for both boards, with the motor on a lead and in the box:
 - **Fit** (`tools/build_assembly.py`): exact boolean intersections between
   every solid part and the body, the lid and every other part: 0 mm³ in all
   four configurations. Wires touch only the parts they join.
-- **Openings**: a plug body of the USB spec's maximum size (10.6 x 8.5 mm)
-  pushed fully home in each socket clears the box by 0.25 mm or more and is
-  centred on the socket to 0.00 mm. The switch lever clears its slot by
-  0.35 mm in both positions and its tip is 0.2 mm inside the wall face.
+- **Under the carrier**: a 3 mm deep block standing for the carrier's solder
+  joints and links (under hole columns 1 to 8 and 17 to 18) is intersected
+  with every part: nothing intrudes. The charger's screw terminal is 1.9 mm
+  from the bare underside of the carrier.
+- **Openings**: a plug body of the USB spec's maximum size pushed fully home
+  in each socket (USB-C 12.35 x 6.5 mm in the charger, micro-USB 10.6 x 8.5 mm
+  in the ESP32) clears the box by 0.25 mm or more and is centred on the socket
+  to 0.00 mm. The switch lever clears its slot by 0.35 mm in both positions
+  and its tip is 0.2 mm inside the wall face.
 - **Clearances** to the printed box are listed per part in
   `build/assembly-*-check.txt`. The tightest are the lid fins beside the
   ESP32 (0.56 mm on the 30-pin board, 0.74 mm on the 38-pin).
@@ -181,12 +207,20 @@ From `./build.sh all`, for both boards, with the motor on a lead and in the box:
 
 ## Assumptions about part sizes
 
-Verified from Adafruit's published Eagle board file (rev B, 2015; the board was
-re-silkscreened in 2023, so check one dimension):
+Verified from Adafruit's published Eagle board file for product 6106
+(`adafruit/Adafruit-bq25185-with-5V-Boost-PCB`, board rev B):
 
-- PowerBoost 1000C outline 36.07 x 22.86 mm, two 2.5 mm mounting holes at the
-  micro-USB end only, 17.78 mm apart, micro-USB centred on the short edge and
-  overhanging it by 0.56 mm, JST socket opening on a long edge.
+- Charger board outline 29.21 x 19.05 mm with 2.54 mm corner radii.
+- Four 2.5 mm mounting holes, 2.54 mm in from each edge (24.13 x 13.97 apart).
+- USB-C socket centred on one short edge, mouth 1.14 mm past the edge.
+- JST-PH battery socket opening on a long edge; the plug goes in across the
+  board.
+- 5 V screw terminal (3.5 mm pitch, 7 x 7 mm body) at the other short edge,
+  wires entering from that end, **+** nearer the pad row.
+- Pad row along the other long edge: VIN, VU, D–, D+, G, BAT, 5V, EN.
+
+From the socket makers' datasheets: USB-C shell 8.94 wide, 3.26 high; JST
+socket 5.5 high.
 
 Verified from Espressif's drawing: 38-pin DevKitC V4 PCB 48.26 x 27.94 mm,
 54.3 mm overall with the antenna, rows 25.4 mm apart, end pins 1.27 mm from the
@@ -195,8 +229,8 @@ board ends. Many clones are narrower (22.86 mm rows): if yours is, change
 
 Typical values, **not verified**:
 
-- PowerBoost board thickness 1.6 mm, tallest part 6 mm, socket centre 1.3 mm
-  above the board.
+- Charger board thickness 1.6 mm. Screw terminal 9 mm high: the board file
+  names no part, and generic blocks run 8.5 to 10 mm.
 - 30-pin DevKit V1: 51.5 x 28.3 mm, rows 25.4 mm apart, USB-end pin 8.0 mm
   from the board end. No maker's drawing was found; the 8.0 is a guess from a
   symmetric layout and it sets how far the board overhangs the perfboard.
@@ -230,11 +264,18 @@ Typical values, **not verified**:
   box has pilot holes in all four posts, but only the two gutter-side screws
   are used; the lid fins hold the other edge. Moving C1 and 5 V IN one hole
   inboard would free all four.
-- **The battery plug is under the carrier.** That is the price of the small
-  footprint. The switch turns the 5 V output off; unplugging the cell means
-  lifting the carrier (two screws).
-- **Charging makes heat.** The PowerBoost charges at up to 1 A inside a closed
-  box inside stuffing. Charge the bear in the open, not under a duvet.
+- **The battery plug and the 5 V screw terminal are under the carrier.** That
+  is the price of the small footprint. The switch turns the 5 V output off;
+  unplugging the cell or re-clamping a wire means lifting the carrier (two
+  screws).
+- **Charging makes heat.** The board charges at up to 1 A inside a closed box
+  inside stuffing. Charge the bear in the open, not under a duvet.
+- **The charger's lights are inside the box.** The orange charging light and
+  the red fault light cannot be seen with the lid on.
+- **PowerBoost 1000C.** The first version of this box (commit `be76edd`) was
+  built around the PowerBoost, the fallback charger named in the main README.
+  This version does not fit it: that board is 7 mm longer and has only two
+  mounting holes.
 - The wire colours match the carrier drawings: red 5 V, black GND, green
   GPIO 25 (LED), yellow GPIO 26 (to the transistor), blue GPIO 27 (paw),
   orange motor +, purple motor -. White is the switch's EN wire.

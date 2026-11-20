@@ -43,8 +43,8 @@ lid_clear_d     = 3.4;  // M3 clearance hole in the lid
 lid_head_d      = 6.0;  // countersunk head diameter (DIN 965 = 5.6, DIN 7991 = 6.0)
 boss_off        = 2.4;  // screw axis distance from the two inner wall faces
 
-/* [Small screws: carrier and PowerBoost] */
-// M2 x 6 pan-head self-tapping screws into 1.7 mm pilot holes.
+/* [Small screws: carrier and charger board] */
+// M2 x 5 pan-head self-tapping screws into 1.7 mm pilot holes.
 m2_pilot_d = 1.7;
 
 /* [Carrier perfboard]  MEASURE */
@@ -53,7 +53,7 @@ perf_hole_inset = 2.0;  // corner mounting holes: centre distance from each edge
 perf_grid_x0    = 5.79; // first hole centre from a SHORT edge (24 holes on 70 mm)
 perf_grid_y0    = 3.41; // first hole centre from a LONG edge  (18 holes on 50 mm)
 perf_standoff_h = 15;   // underside of the perfboard above the floor.
-                        // The PowerBoost and switch live in this space.
+                        // The charger board and switch live in this space.
 perf_post       = 4.4;  // size of the square corner posts under the board
                         // (kept small: the first solder joints are 5.8 mm in)
 
@@ -84,14 +84,25 @@ cut_micro = [12.4, 9.4];
 cut_c     = [13.6, 7.8];
 cut_r     = 1.2;         // corner radius of the cut-outs
 
-/* [Adafruit PowerBoost 1000C]  from Adafruit's board file (rev B) */
-pb       = [36.07, 22.86, 1.6]; // length, width, thickness (thickness MEASURE)
-pb_holes = [[2.54, 2.54], [2.54, 20.32]]; // the only two mounting holes (2.5 mm)
-pb_usb_cy       = 11.43; // micro-USB centre across the board
-pb_usb_overhang = 0.56;  // socket mouth past the board edge
-pb_usb_h        = 1.3;   // socket centre above the PCB top  MEASURE
-pb_standoff_h   = 3.5;   // underside of the PowerBoost above the floor
-pb_top_h        = 6.0;   // tallest part on the PowerBoost (JST socket) MEASURE
+/* [Charger: Adafruit bq25185 USB-C charger + 5 V boost, product 6106] */
+// Outline, holes, socket and pad positions are from Adafruit's Eagle board
+// file. Board frame: USB-C on the short edge at x = 0, header pads along
+// y = 2.54, JST battery socket opening on the far long edge, 5 V screw
+// terminal at the other short edge. Heights are NOT in the file: MEASURE.
+chg       = [29.21, 19.05, 1.6];  // length, width, thickness (thickness MEASURE)
+chg_holes = [[2.54, 2.54], [2.54, 16.51], [26.67, 2.54], [26.67, 16.51]]; // 2.5 mm
+chg_usb_cy       = 9.525;  // USB-C centre across the board
+chg_usb_overhang = 1.14;   // socket mouth past the board edge
+chg_usb_h        = 1.65;   // socket centre above the PCB top           MEASURE
+chg_standoff_h   = 2.5;    // underside of the charger above the floor
+chg_standoff_r   = 2.1;    // small, so it clears the EN and VIN pad joints
+chg_top_h        = 9.0;    // tallest part: the 3.5 mm screw terminal   MEASURE
+chg_jst   = [9.97, 10.994, 8.0, 7.5];  // battery socket: x, y, length, depth
+chg_term  = [22.0, 6.125, 7.0, 7.0];   // screw terminal body: x, y, length, width
+chg_term_pads = [[25.4, 7.825], [25.4, 11.325]];   // +5V, GND
+chg_pad_y = 2.54;                      // header pad row
+chg_pad_x = [5.715, 8.255, 10.795, 13.335, 15.875, 18.415, 20.955, 23.495];
+//           VIN    VBUS   D-      D+      G       BAT     5V      EN
 
 /* [Battery]  MEASURE */
 batt = [60, 36, 7];      // length, width, thickness (stands on its long edge)
@@ -188,11 +199,11 @@ function wall_notch_y(i)  = fence_notch_y(i) + jog;
 esp_mouth_x = px0 + esp_x0r - esp_usb_overhang;   // ESP32 USB socket mouth (>= tol)
 ue_y = py0 + esp_center_y;
 ue_z = zt + header_h + pin_spacer_h + esp_pcb_t + esp_usb_h;
-pb_x0 = pb_usb_overhang + 0.2;     // socket mouth 0.2 mm short of the wall
-pb_y0 = bay_y0 + perf_post + 1.0;
-pb_z  = pb_standoff_h;
-up_y  = pb_y0 + pb_usb_cy;
-up_z  = pb_z + pb[2] + pb_usb_h;
+chg_x0 = chg_usb_overhang + 0.2;   // socket mouth 0.2 mm short of the wall
+chg_y0 = bay_y0 + perf_post + 1.0;
+chg_z  = chg_standoff_h;
+up_y  = chg_y0 + chg_usb_cy;
+up_z  = chg_z + chg[2] + chg_usb_h;
 
 // switch
 sw_web   = 1.2;                                // plastic between switch and recess
@@ -216,8 +227,10 @@ perf_hole_xy = [for (ix = [0, 1], iy = [0, 1])
 
 L_out = L_in + 2*wall;  W_out = W_in + 2*wall;  H_out = floor_t + H_in + lid_t;
 
-assert(perf_standoff_h >= pb_standoff_h + pb[2] + pb_top_h + 3.5,
-       "perf_standoff_h too low: the carrier's solder joints would touch the PowerBoost");
+// The charger sits under the ESP32, between the two header rows, where the
+// carrier has no solder joints or links. Its screw terminal still needs air.
+assert(perf_standoff_h >= chg_standoff_h + chg[2] + chg_top_h + 0.8,
+       "perf_standoff_h too low: the charger's screw terminal would touch the carrier");
 assert(sw_zc + sw_recess[1]/2 + 1.2 <= zs - 0.5, "switch recess reaches the perfboard");
 assert(motor_t + 0.4 + 1.2 <= gutter, "motor pocket does not fit in the gutter");
 assert(corner_r >= edge_r);
@@ -307,20 +320,10 @@ module perf_posts() {
     box(x1 - p, fence_x0 + ov, div_y0 - tol - p, div_y0 + ov, -ov, zs);
 }
 
-module pb_mount() {
-    // two screw standoffs at the micro-USB end
-    for (h = pb_holes) translate([pb_x0 + h[0], pb_y0 + h[1], -ov])
-        cylinder(r = 2.75, h = pb_z + ov, $fn = 32);
-    // nest for the far end (the board has no holes there)
-    xe = pb_x0 + pb[0]; lip = 1.2; zf = pb_z + pb[2] + 1.0;
-    for (s = [0, 1]) {
-        ya = s ? pb_y0 + pb[1] - 4 : pb_y0 - tol - lip;
-        yb = s ? pb_y0 + pb[1] + tol + lip : pb_y0 + 4;
-        box(xe - 4, xe + tol + lip, ya, yb, -ov, pb_z);
-        box(xe + tol, xe + tol + lip, ya, yb, -ov, zf);
-        if (s) box(xe - 4, xe + tol + lip, pb_y0 + pb[1] + tol, yb, -ov, zf);
-        else   box(xe - 4, xe + tol + lip, ya, pb_y0 - tol, -ov, zf);
-    }
+module chg_mount() {
+    // four screw standoffs, one under each mounting hole
+    for (h = chg_holes) translate([chg_x0 + h[0], chg_y0 + h[1], -ov])
+        cylinder(r = chg_standoff_r, h = chg_z + ov, $fn = 32);
 }
 
 module switch_block() {
@@ -388,18 +391,18 @@ module body() {
             lid_bosses();
             divider();
             perf_posts();
-            pb_mount();
+            chg_mount();
             switch_block();
             if (motor_pocket) motor_pocket_walls();
             strain_fence();
         }
         // --- openings in the port wall ---
         yz_cut(ue_y, ue_z, esp_cut[0], esp_cut[1], cut_r, 0.5);      // ESP32 USB
-        yz_cut(up_y, up_z, cut_micro[0], cut_micro[1], cut_r, 0.5);  // charging USB
+        yz_cut(up_y, up_z, cut_c[0], cut_c[1], cut_r, 0.5);          // charging USB-C
         switch_cuts();
         if (labels) {
             port_label("PROG", ue_y, ue_z - esp_cut[1]/2 - 3.6);
-            port_label("CHARGE", up_y, up_z + cut_micro[1]/2 + 3.6);
+            port_label("CHARGE", up_y, up_z + cut_c[1]/2 + 3.6);
         }
         // --- lead exits: slot in the fence, offset slot in the wall ---
         for (i = [0 : n_exits - 1]) {
@@ -422,8 +425,8 @@ module body() {
         }
         for (h = perf_hole_xy) translate([h[0], h[1], zs - 7])
             cylinder(d = m2_pilot_d, h = 8, $fn = 24);
-        for (h = pb_holes) translate([pb_x0 + h[0], pb_y0 + h[1], -1.0])
-            cylinder(d = m2_pilot_d, h = pb_z + 2, $fn = 24);
+        for (h = chg_holes) translate([chg_x0 + h[0], chg_y0 + h[1], -1.3])
+            cylinder(d = m2_pilot_d, h = chg_z + 2.3, $fn = 24);
     }
 }
 
