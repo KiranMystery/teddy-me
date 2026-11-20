@@ -13,6 +13,8 @@ Phone → ESP32 → buzz / light. Two flavours, same buttons:
 |---|---|
 | `circuit.svg` | Full wiring diagram, LED + motor + paw button (open in a browser) |
 | `circuit-led.svg` | LED only, for getting started before the transistor arrives |
+| `circuit-battery.svg` | The in-the-bear build: LiPo, PowerBoost 1000C charger/boost, on/off switch, plus the same LED, motor and paw button |
+| `carrier-38pin.svg`, `carrier-30pin.svg` | Hole-by-hole perfboard layout of the carrier board, one per ESP32 board type |
 | `teddy_bear_ble/teddy_bear_ble.ino` | **Bluetooth** ESP32 sketch |
 | `app-ble.html` | **Bluetooth** control page (Web Bluetooth) |
 | `teddy_bear/teddy_bear.ino` | **WiFi** ESP32 sketch, control page embedded in it |
@@ -308,6 +310,93 @@ Anything that can make an HTTP request can drive the bear (Shortcuts, curl…):
 | `/motor/on` | motor on (call repeatedly while holding) |
 | `/motor/off` | motor off |
 | `/led/toggle`, `/led/on`, `/led/off` | LED |
+
+## Putting it in the bear: battery and carrier board
+
+The bench circuit runs from USB through a screw-terminal adapter. For the bear
+it becomes three things in a printed box: a **battery and charger**, a soldered
+**carrier board** the ESP32 plugs into, and **leads** out to the motor, LED and
+paw button. Schematic: `circuit-battery.svg`. The firmware does not change.
+
+### Extra parts
+
+| Qty | Part | Notes |
+|---|---|---|
+| 1 | Adafruit PowerBoost 1000C (product 2465) | LiPo charger and 5 V boost in one. Its **micro-USB socket is the bear's charging port** |
+| 1 | Protected 3.7 V LiPo cell with JST-PH plug | rated for 1 A charging, typically 1000 mAh or more; 2000 mAh is a good size |
+| 1 | Small SPDT slide switch | on/off. Only carries a signal, so any size works |
+| 1 | 5 x 7 cm perfboard (18 x 24 holes) | the carrier |
+| 2 | Female header strips | 19-way for the 38-pin board, 15-way for the 30-pin board |
+| 1 | 15–22 Ω resistor (R3) | in the motor's + lead, because the motor now runs from 5 V |
+| 4 | 2-pin JST-XH plug and socket, or 0.1 inch pin headers | 5 V in, motor, LED, paw. JST-PH (2 mm) does not fit perfboard |
+| – | 26 AWG silicone stranded wire | for every lead that leaves the box |
+
+C1 (100–470 µF) is no longer optional.
+
+### Power wiring
+
+| PowerBoost 1000C | goes to |
+|---|---|
+| JST battery socket | the LiPo. It must always be plugged in, the board does not work without it |
+| **5V** pad | carrier **5 V IN +**, which is the ESP32's 5V / VIN pin (about 5.2 V) |
+| **GND** pad | carrier **5 V IN GND** |
+| **EN** pad | one side of the slide switch; the other side to **GND**. Closed = bear off |
+| micro-USB socket | the charging port, flush with the box wall |
+
+The board's lights: blue = 5 V output on, yellow = charging, green = full,
+red = battery low (under 3.2 V). The bear can stay on while it charges.
+Switch it **off** before plugging the ESP32's own USB into a computer to
+flash it.
+
+### The carrier board
+
+`carrier-38pin.svg` (Ellie) and `carrier-30pin.svg` (Bruno) show every hole.
+Both put the ESP32's EN-side header in column 8 with the USB end at row 24, so
+the same box fits either board. Only the rows differ, because the 38-pin board
+has 3V3 before EN:
+
+| | 38-pin | 30-pin |
+|---|---|---|
+| GPIO 25 / 26 / 27 | rows 14 / 15 / 16 | rows 17 / 18 / 19 |
+| GND | row 19 | row 23 |
+| 5V / VIN | row 24 | row 24 |
+
+Compared with `circuit.svg` the only electrical changes are that the motor,
+diode and C1 hang off the **5 V** rail instead of 3V3, and R3 sits in the
+motor's + lead to bring 5 V back down to about what a 3 V coin motor expects.
+
+### Build order
+
+1. **Headers first.** Plug both header strips onto the ESP32, drop them into
+   the perfboard and solder. The board sets the spacing between the rows.
+2. **Low parts, then tall.** Resistors and diode, then the transistor, the
+   connectors, and C1 last. Then the wires on the underside.
+3. **Meter check** before any power: no beep between 5 V IN + and GND, and a
+   beep from each connector pin to the ESP32 pin the layout says it reaches.
+4. **USB test.** Plug the ESP32 in, plug in motor, LED and button, power it
+   from its own USB. Everything should behave exactly as on the bench.
+5. **Battery side on its own.** Solder the 5V, GND and switch leads to the
+   PowerBoost, plug in the LiPo, switch on, and measure about 5.2 V at the
+   output before it goes anywhere near the carrier.
+6. **Together.** Unplug USB, connect the PowerBoost to 5 V IN. Hold the paw
+   for ten seconds: the bear must not reset. Then charge it until the green
+   light comes on.
+7. **Into the box,** and the box into the bear.
+
+### In the box
+
+- The charging socket and the ESP32's USB socket each need a hole; without the
+  second one you have to open the bear to update the firmware.
+- Battery in its own snug compartment: no screw tips or sharp edges near it,
+  and not next to the motor.
+- Glue the motor hard against the box wall so the whole box purrs, or put it
+  in the paw on a lead. Loose in the stuffing it mostly disappears.
+- Keep the ESP32's antenna end facing a plain plastic wall, away from the
+  battery.
+- Hot-glue each lead where it leaves the box, and fix the motor's own hair-thin
+  leads to its body, so only the thick wire ever flexes.
+- It is a lithium cell inside a soft toy: use a protected cell, enclose it
+  fully, and charge it where someone can see it, not in a bed overnight.
 
 ## Ideas for later
 
