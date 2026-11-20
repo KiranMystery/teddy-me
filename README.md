@@ -13,7 +13,7 @@ Phone → ESP32 → buzz / light. Two flavours, same buttons:
 |---|---|
 | `circuit.svg` | Full wiring diagram, LED + motor + paw button (open in a browser) |
 | `circuit-led.svg` | LED only, for getting started before the transistor arrives |
-| `circuit-battery.svg` | The in-the-bear build: LiPo, PowerBoost 1000C charger/boost, on/off switch, plus the same LED, motor and paw button |
+| `circuit-battery.svg` | The in-the-bear build: LiPo, USB-C charger/boost board, on/off switch, plus the same LED, motor and paw button |
 | `carrier-38pin.svg`, `carrier-30pin.svg` | Hole-by-hole perfboard layout of the carrier board, one per ESP32 board type |
 | `teddy_bear_ble/teddy_bear_ble.ino` | **Bluetooth** ESP32 sketch |
 | `app-ble.html` | **Bluetooth** control page (Web Bluetooth) |
@@ -322,8 +322,8 @@ paw button. Schematic: `circuit-battery.svg`. The firmware does not change.
 
 | Qty | Part | Notes |
 |---|---|---|
-| 1 | Adafruit PowerBoost 1000C (product 2465) | LiPo charger and 5 V boost in one. Its **micro-USB socket is the bear's charging port** |
-| 1 | Protected 3.7 V LiPo cell with JST-PH plug | rated for 1 A charging, typically 1000 mAh or more; 2000 mAh is a good size |
+| 1 | Adafruit bq25185 USB / DC / Solar Charger with 5V Boost (product 6106) | LiPo charger and 5 V boost in one. Its **USB-C socket is the bear's charging port** |
+| 1 | Protected 3.7 V LiPo cell with JST-PH plug | 500 mAh or larger; 2000 mAh is a good size. Under 1000 mAh, cut the jumper on the back of the charger board so it charges at 500 mA instead of 1 A |
 | 1 | Small SPDT slide switch | on/off. Only carries a signal, so any size works |
 | 1 | 5 x 7 cm perfboard (18 x 24 holes) | the carrier |
 | 2 | Female header strips | 19-way for the 38-pin board, 15-way for the 30-pin board |
@@ -335,18 +335,29 @@ C1 (100–470 µF) is no longer optional.
 
 ### Power wiring
 
-| PowerBoost 1000C | goes to |
+| Charger board | goes to |
 |---|---|
-| JST battery socket | the LiPo. It must always be plugged in, the board does not work without it |
-| **5V** pad | carrier **5 V IN +**, which is the ESP32's 5V / VIN pin (about 5.2 V) |
-| **GND** pad | carrier **5 V IN GND** |
-| **EN** pad | one side of the slide switch; the other side to **GND**. Closed = bear off |
-| micro-USB socket | the charging port, flush with the box wall |
+| JST battery socket | the LiPo |
+| screw terminal **+** | carrier **5 V IN +**, which is the ESP32's 5V / VIN pin |
+| screw terminal **–** | carrier **5 V IN GND** |
+| **EN** pad | one side of the slide switch; the other side to the **G** pad. Closed = bear off |
+| USB-C socket | the charging port, flush with the box wall |
 
-The board's lights: blue = 5 V output on, yellow = charging, green = full,
-red = battery low (under 3.2 V). The bear can stay on while it charges.
+The board's lights: green = 5 V output on, orange (C) = charging and goes out
+when the cell is full, red (F) = fault. The bear can stay on while it charges.
 Switch it **off** before plugging the ESP32's own USB into a computer to
 flash it.
+
+Two things Adafruit's guide says about this board that matter here:
+
+- **Charging stops after 6 hours**, a fixed safety timer in the charger chip.
+  A big or very flat cell may need the cable pulled and replugged to finish.
+- **The boost can stall if more than about 200 mA is drawn while it switches
+  on.** An ESP32 draws well under that for the first moments after power-up,
+  so it should start, but this has not been tried on these bears yet. Step 6
+  below tests it. If the bear ever fails to start from the switch, the
+  fallback is Adafruit's PowerBoost 1000C (product 2465, micro-USB), which
+  wires up the same way: 5V, GND, and EN to GND for off.
 
 ### The carrier board
 
@@ -376,11 +387,12 @@ motor's + lead to bring 5 V back down to about what a 3 V coin motor expects.
 4. **USB test.** Plug the ESP32 in, plug in motor, LED and button, power it
    from its own USB. Everything should behave exactly as on the bench.
 5. **Battery side on its own.** Solder the 5V, GND and switch leads to the
-   PowerBoost, plug in the LiPo, switch on, and measure about 5.2 V at the
-   output before it goes anywhere near the carrier.
-6. **Together.** Unplug USB, connect the PowerBoost to 5 V IN. Hold the paw
-   for ten seconds: the bear must not reset. Then charge it until the green
-   light comes on.
+   charger board, plug in the LiPo, switch on, and measure 5 V at the screw
+   terminal before it goes anywhere near the carrier.
+6. **Together.** Unplug USB, connect the charger board to 5 V IN. Switch the
+   bear off and on ten times: it must boot and buzz hello every time. Hold
+   the paw for ten seconds: it must not reset. Then charge it until the
+   orange light goes out.
 7. **Into the box,** and the box into the bear.
 
 ### In the box

@@ -668,7 +668,7 @@
 <text x="530" y="487" text-anchor="start" fill="#222" font-size="12" font-weight="bold">PAW</text>
 <text x="630" y="487" text-anchor="start" fill="#222" font-size="12">col 2 row 20 and col 1 row 20 (either way round)</text>
 <text x="530" y="504" text-anchor="start" fill="#222" font-size="12" font-weight="bold">5 V IN</text>
-<text x="630" y="504" text-anchor="start" fill="#222" font-size="12">+5 V col 2 row 24, GND col 1 row 24 (from the PowerBoost)</text>
+<text x="630" y="504" text-anchor="start" fill="#222" font-size="12">+5 V col 2 row 24, GND col 1 row 24 (from the charger board)</text>
 <text x="530" y="533" text-anchor="start" fill="#222" font-size="13" font-weight="bold">Build tips</text>
 <text x="530" y="553" text-anchor="start" fill="#444" font-size="12">• Plug the two header strips onto the ESP32 first, then solder them: the board sets the row spacing.</text>
 <text x="530" y="570" text-anchor="start" fill="#444" font-size="12">• The EN-side header goes in column 8 with its last pin (USB end) on row 24.</text>
