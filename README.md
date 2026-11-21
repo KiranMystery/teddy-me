@@ -17,7 +17,7 @@ Phone → ESP32 → buzz / light. Two flavours, same buttons:
 | `carrier-38pin.svg`, `carrier-30pin.svg` | Hole-by-hole perfboard layout of the carrier board, one per ESP32 board type |
 | `carrier-compact-38pin.svg`, `carrier-compact-30pin.svg` | The same circuit on a perfboard cut to 14 columns, with the small parts under the ESP32. For the USB-powered prototype and its smaller box |
 | `enclosure/` | 3D-printable box for the electronics, battery or USB-powered, with a wired 3D view. See its README |
-| `heart/` | 3D-printable stitch-on heart window for the LED on the front of the bear. See its README |
+| `heart/` | 3D-printable stitch-on heart for the front of the bear: one red domed piece with the LED poking out of the middle. See its README |
 | `paw/` | 3D-printable squeeze pad that gives the paw button a 25 to 40 mm pressing area. See its README |
 | `teddy_bear_ble/teddy_bear_ble.ino` | **Bluetooth** ESP32 sketch |
 | `app-ble.html` | **Bluetooth** control page (Web Bluetooth) |

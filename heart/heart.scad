@@ -1,64 +1,54 @@
-// teddy-me: stitch-on heart window for the LED on the front of the bear.
+// teddy-me: stitch-on heart for the LED on the front of the bear.
 //
-// Two printed parts:
-//   frame  the heart you sew on. A flat front plate with stitch holes lies on
-//          the outside of the fabric; a short wall behind it goes through the
-//          heart-shaped hole you cut in the bear.
-//            style = "outline": the window is open. Glue diffuser film to the
-//                               ledge behind it.
-//            style = "full":    the window is closed by a thin lens. Print the
-//                               whole frame in transparent PLA.
-//   cup    a light box that pushes into the back of the frame and holds the
-//          5 mm LED. Print it in white so it reflects.
+// One printed piece, meant for red filament: a domed heart with a flat rim of
+// stitch holes round it. The 5 mm LED pushes in from the back and its tip
+// pokes out through the middle of the dome.
 //
-//   openscad -D 'part="frame"' -D 'style="outline"' -o heart-frame-outline.stl heart.scad
-//   (or just run ./build.sh)
+//   openscad -o heart.stl heart.scad            (or just run ./build.sh)
 //
-// Both parts print flat on the bed with no supports: the frame front face
-// down, the cup back face down.
+// Prints flat on its back with no supports. Sew it onto the outside of the
+// fabric; only the LED's two wires go through the fabric, behind the middle.
 
 /* [What to build] */
-part  = "frame";      // "frame", "cup", "cup_placed" (cup where it sits in the frame), "assembly"
-style = "outline";    // "outline" or "full"
+part = "heart";       // "heart", or for the checks: "led" (a 5 mm LED where it sits), "assembly"
+cut  = false;         // "assembly": slice it open through the LED
 
 /* [Size] */
-heart_w   = 40;       // width of the lit window. Everything else follows from it
+heart_w  = 40;        // width of the domed heart. The rim adds to this
 
-/* [Frame] */
-ledge     = 1.5;      // rim behind the window that the film is glued to
-skirt_wall= 1.2;      // wall that goes through the fabric
-skirt_h   = 6.0;      // how far that wall stands behind the front plate
-flange_w  = 5.5;      // width of the sewing flange outside the wall
-flange_t  = 1.2;      // thickness of the front plate
-lens_t    = 0.8;      // style "full": thickness of the window (4 layers at 0.2)
-edge_soft = 0.4;      // chamfer on the front outside edge
-stitch_d  = 1.6;      // stitch holes
+/* [Dome] */
+dome_h   = 7.0;       // height of the dome above the rim
+dome_run = 1.0;       // how far in from the edge the dome keeps rising, as a
+                      // share of the distance from the edge to the LED (0.5 = a
+                      // steep edge and a wide flat top, 1.0 = rounded all the way)
+layer    = 0.2;       // the dome is built in steps this tall: print at 0.2 or 0.1
+
+/* [Rim] */
+flange_w = 5.5;       // width of the sewing rim
+flange_t = 1.2;       // its thickness
+edge_soft= 0.4;       // chamfer on the rim's top outside edge
+stitch_d = 1.6;       // stitch holes
 stitch_pitch = 4.5;   // spacing between stitch holes (approximate, evened out)
 
-/* [Cup and LED] */
-cup_clear = 0.2;      // gap between the cup and the frame wall, per side
-cup_wall  = 1.2;
-cup_depth = 14;       // inside depth: LED tip to window distance sets the hot spot
-back_t    = 2.0;      // cup back plate
-led_d     = 5.1;      // hole for a 5 mm LED
-led_flange_d = 6.3;   // recess for the LED's flange, in the outside of the back plate
-led_flange_h = 1.0;
-sleeve_h  = 4.0;      // sleeve inside the cup that grips the LED body
-led_y     = 0;        // LED position above (+) or below (-) the middle of the heart, mm
+/* [LED]  MEASURE */
+led_d        = 5.1;   // hole for a 5 mm LED
+led_flange_d = 6.3;   // recess for the LED's flange (5.8 mm) at the back
+led_len      = 7.6;   // LED length in front of its flange (8.6 mm overall)
+led_poke     = 3.5;   // how far the LED tip stands out of the dome
+led_y        = undef; // LED position above (+) / below (-) the middle of the heart.
+                      // undef = the thickest point on the centre line
 
 // =====================================================================
 $fn = 48;
-// The heart is two round lobes and a small round tip joined by straight
-// sides, so every outline below is a clean offset of it.
+// The heart is two round lobes and a small round tip joined by straight sides.
 lobe_r = heart_w/3.8;                       // lobe radius
 lobe_a = 0.9*lobe_r;                        // lobe centres at x = +/- lobe_a
 tip_r  = 0.06*heart_w;                      // radius of the bottom tip
-heart_h= 0.92*heart_w;                      // overall height of the window
+heart_h= 0.92*heart_w;                      // overall height of the dome outline
 tip_h  = heart_h - lobe_r - tip_r;          // tip circle centre below the lobe centres
 y_mid  = (tip_h + tip_r - lobe_r)/2;        // shift that centres it top to bottom
-// outward normal of the straight right-hand side (tangent to lobe and tip)
 D_lt   = norm([lobe_a, tip_h]);
-th_n   = atan2(-tip_h, -lobe_a) + acos((lobe_r - tip_r)/D_lt);   // angle of that normal
+th_n   = atan2(-tip_h, -lobe_a) + acos((lobe_r - tip_r)/D_lt);   // normal of the straight right side
 th_c   = atan2(sqrt(lobe_r*lobe_r - lobe_a*lobe_a), -lobe_a);    // cleft, seen from the right lobe
 seg    = 1.0;                               // point spacing along the outline, mm
 function arc(c, r, a0, a1) = let (n = max(2, ceil(abs(a1 - a0)*PI/180*r/seg)))
@@ -73,24 +63,32 @@ base = concat(
     line(c_t + tip_r*[cos(th_n), sin(th_n)], c_r + lobe_r*[cos(th_n), sin(th_n)]),
     arc(c_r, lobe_r, th_n, th_c));
 N = len(base);
+function dmin(p, i = 0, m = 1e9) = i >= N ? m : dmin(p, i + 1, min(m, norm(p - base[i])));
 
-// 2D heart, grown outwards by g, with the cleft slightly rounded
+// 2D heart grown outwards by g (the rim), with the cleft slightly rounded
 module H(g = 0) {
     offset(r = g + 0.001)
         offset(r = -0.03*heart_w) offset(r = 0.03*heart_w)
             polygon(base);
 }
-skirt_in  = ledge;
-skirt_out = ledge + skirt_wall;
-flange_out= skirt_out + flange_w;
+// 2D heart shrunk inwards by d (one step of the dome), corners kept round
+module Hin(d) { s = 1.0; offset(r = s) offset(r = -s - d) polygon(base); }
 module flange2d(shrink = 0)
-    offset(r = -shrink) offset(r = -3) offset(r = 3) H(flange_out);   // no sharp V at the cleft
+    offset(r = -shrink) offset(r = -3) offset(r = 3) H(flange_w);   // no sharp V at the cleft
 
-// ---- stitch holes: evenly spaced along the curve half way across the flange
-st_d = skirt_out + flange_w/2 + 0.2;
+// ---- where the LED goes: the point on the centre line furthest from the edge
+cands  = [for (y = [-heart_h/2 : 0.25 : heart_h/2]) [dmin([0, y]), y]];
+d_best = max([for (c = cands) c[0]]);
+y_best = [for (c = cands) if (c[0] == d_best) c[1]][0];
+led_xy = [0, is_undef(led_y) ? y_best : led_y];
+d_led  = dmin(led_xy);                      // distance from the LED to the edge
+d_run  = dome_run*(d_led - led_flange_d/2); // the dome is at full height from here inwards
+assert(d_run > 2, "heart too small for a dome round the LED");
+
+// ---- stitch holes: evenly spaced along the middle of the rim
+st_d = flange_w/2 + 0.2;
 function nrm(i) = let (t = base[(i + 1) % N] - base[(i + N - 1) % N])
     norm(t) < 1e-9 ? [0, 0] : [t[1], -t[0]]/norm(t);
-function dmin(p, i = 0, m = 1e9) = i >= N ? m : dmin(p, i + 1, min(m, norm(p - base[i])));
 // offset curve, minus the part that folds over itself in the cleft
 path = [for (i = [0 : N - 1]) let (p = base[i] + st_d*nrm(i)) if (dmin(p) >= st_d - 0.15) p];
 M = len(path);
@@ -103,73 +101,53 @@ function at(s, j = 0) = (j >= M - 1 || cl[j + 1] >= s)
     ? let (a = path[j], b = path[(j + 1) % M], f = cl[j + 1] > cl[j] ? (s - cl[j])/(cl[j + 1] - cl[j]) : 0)
       a + f*(b - a)
     : at(s, j + 1);
-// the path starts and ends either side of the cleft, so its half-way point
-// (leaving out the closing step across the cleft) is the tip: put a hole there
-s_tip = cl[M - 1]/2;
+s_tip = cl[M - 1]/2;                        // half way round is the tip: put a hole there
 function wrap(s) = s < 0 ? s + Ltot : (s >= Ltot ? s - Ltot : s);
 holes = [for (k = [0 : n_st - 1]) at(wrap(s_tip + k*Ltot/n_st))];
 
-led_xy = [0, led_y];
+// ---- LED seat
+top_z    = flange_t + dome_h;               // top of the dome, where the LED comes out
+recess_h = top_z + led_poke - led_len;      // depth of the flange recess in the back
+grip     = top_z - recess_h;                // length of the hole that holds the LED body
+assert(recess_h >= 1.2, "LED cannot poke out that far: lower led_poke or dome_h");
+assert(grip >= 2, "too little material round the LED: raise dome_h or lower led_poke");
 
 // =====================================================================
-//  FRAME (front face on the bed)
+//  THE HEART (back on the bed)
 // =====================================================================
-module frame() {
-    steps = 2;
+n_steps = round(dome_h/layer);
+function inset(k) = let (u = (k + 0.5)/n_steps) d_run*(1 - sqrt(1 - u*u));   // quarter-ellipse profile
+module heart() {
     difference() {
         union() {
-            // front plate with a stepped chamfer on its front outside edge
-            for (i = [0 : steps - 1])
-                translate([0, 0, i*edge_soft/steps])
-                    linear_extrude(edge_soft/steps + 0.001) flange2d(edge_soft*(1 - i/steps));
-            translate([0, 0, edge_soft]) linear_extrude(flange_t - edge_soft) flange2d();
-            // wall through the fabric
-            linear_extrude(flange_t + skirt_h) difference() { H(skirt_out); H(skirt_in); }
+            // rim, with a stepped chamfer on its top outside edge
+            linear_extrude(flange_t - edge_soft) flange2d();
+            for (i = [0, 1]) translate([0, 0, flange_t - edge_soft + i*edge_soft/2])
+                linear_extrude(edge_soft/2 + 0.001) flange2d(edge_soft*(i + 1)/2);
+            // dome: one slice per layer, each a little smaller than the last
+            for (k = [0 : n_steps - 1]) translate([0, 0, flange_t + k*dome_h/n_steps - 0.001])
+                linear_extrude(dome_h/n_steps + 0.001) Hin(inset(k));
         }
-        if (style == "full")
-            translate([0, 0, lens_t]) linear_extrude(flange_t + skirt_h) H(0);
-        else
-            translate([0, 0, -1]) linear_extrude(flange_t + skirt_h + 2) H(0);
         for (p = holes) translate([p[0], p[1], -1]) cylinder(d = stitch_d, h = flange_t + 2, $fn = 16);
+        translate([led_xy[0], led_xy[1], -1]) cylinder(d = led_d, h = top_z + 2);
+        translate([led_xy[0], led_xy[1], -0.01]) cylinder(d = led_flange_d, h = recess_h + 0.01);
     }
 }
-
-// =====================================================================
-//  CUP (back plate on the bed, open side up)
-// =====================================================================
-cup_o = skirt_in - cup_clear;
-cup_i = cup_o - cup_wall;
-cup_h = back_t + cup_depth;
-module cup() {
-    difference() {
-        union() {
-            linear_extrude(back_t) H(cup_o);
-            linear_extrude(cup_h) difference() { H(cup_o); H(cup_i); }
-            translate(led_xy) cylinder(d = led_d + 3.2, h = back_t + sleeve_h);
-        }
-        translate(led_xy) {
-            translate([0, 0, -1]) cylinder(d = led_d, h = back_t + sleeve_h + 2);
-            translate([0, 0, -0.01]) cylinder(d = led_flange_d, h = led_flange_h + 0.01);
-        }
-    }
+// a 5 mm LED where it sits: flange against the top of the recess
+module led() translate([led_xy[0], led_xy[1], recess_h]) {
+    translate([0, 0, -1]) cylinder(d = 5.8, h = 1);
+    cylinder(d = 5, h = led_len - 2.5);
+    translate([0, 0, led_len - 2.5]) sphere(d = 5);
 }
-// the cup where it sits when pushed home: rim against the ledge (and the film)
-module cup_placed(film = 0.1) translate([0, 0, flange_t + film + cup_h]) mirror([0, 0, 1]) cup();
 
-if (part == "frame") frame();
-if (part == "cup") cup();
-if (part == "cup_placed") cup_placed();
-if (part == "assembly") {
-    color(style == "full" ? "#ffd0d8" : "#e0314b") frame();
-    color("#f4f4f4") cup_placed();
-    // 5 mm LED
-    color("#ff4b3e") translate([led_xy[0], led_xy[1], flange_t + 0.1 + cup_h]) mirror([0, 0, 1]) {
-        cylinder(d = 5.8, h = 1);
-        cylinder(d = 5, h = 6.1);
-        translate([0, 0, 6.1]) sphere(d = 5);
-    }
+if (part == "heart") heart();
+if (part == "led") led();
+if (part == "assembly") difference() {
+    union() { color("#d81e2c") heart(); color("#ff8a80") led(); }
+    if (cut) translate([0, -200, -50]) cube([200, 400, 100]);
 }
 if (part != "none")
-    echo(str("HEART window ", heart_w, " mm wide; ", n_st, " stitch holes about ",
-             round(10*Ltot/n_st)/10, " mm apart; cup stands ",
-             cup_h - skirt_h + 0.1, " mm behind the frame wall"));
+    echo(str("HEART dome ", heart_w, " x ", heart_h, " mm, ", top_z, " mm tall; with the rim ",
+             heart_w + 2*flange_w, " x ", heart_h + 2*flange_w, " mm; ", n_st, " stitch holes about ",
+             round(10*Ltot/n_st)/10, " mm apart; LED at y = ", led_xy[1], ", ",
+             round(10*d_led)/10, " mm from the edge, pokes out ", led_poke, " mm"));

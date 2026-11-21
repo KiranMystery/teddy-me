@@ -1,63 +1,55 @@
 # Stitch-on heart for the LED
 
-A heart-shaped window for the front of the bear. You cut a heart-shaped hole in
-the fabric, push this through from the outside and sew it on through the holes
-in its rim. The LED sits in a cup behind it.
+A domed heart for the front of the bear, printed in one piece in red. It has a
+flat rim of stitch holes round it, and the 5 mm LED pokes out through the
+middle of the dome.
 
-![Front of the outline frame](renders/heart-front-outline.png)
-![Back, with the cup and LED fitted](renders/heart-back-assembled.png)
+![The heart with its LED](renders/heart-angle.png)
+![Cut through the middle](renders/heart-section.png)
 
 Nothing here has been printed yet.
 
-## Parts
+## Sizes
 
-| File | Print in | What it is |
-|---|---|---|
-| `heart-frame-outline.stl` | any colour | Frame with an open window. Glue diffuser film to the ledge behind the window |
-| `heart-frame-full.stl` | transparent PLA | The same frame with the window closed by a 0.8 mm lens. No film needed |
-| `heart-cup.stl` | white | Light box that pushes into the back of the frame and holds a 5 mm LED |
+One file per size, in `stl/`. The number is the width of the dome:
 
-Three sizes are built, in `stl/30mm`, `stl/40mm` and `stl/50mm`. The number is
-the width of the lit window:
+| File | Dome | With the rim | Height | Stitch holes |
+|---|---|---|---|---|
+| `heart-30mm.stl` | 30 x 28 mm | 41 x 39 mm | 8.2 mm | 24 |
+| `heart-40mm.stl` | 40 x 37 mm | 51 x 48 mm | 8.2 mm | 31 |
+| `heart-50mm.stl` | 50 x 46 mm | 61 x 57 mm | 8.2 mm | 38 |
 
-| Window | Whole frame | Hole to cut in the fabric | Depth behind the fabric |
-|---|---|---|---|
-| 30 mm | 46 x 44 mm | 35 x 33 mm | 16 mm |
-| 40 mm | 56 x 53 mm | 45 x 42 mm | 16 mm |
-| 50 mm | 66 x 62 mm | 55 x 51 mm | 16 mm |
+The LED tip stands 3.5 mm above the dome on all three.
 
-For another size: `SIZES="36" ./build.sh`, or change `heart_w` at the top of
+Another size: `SIZES="36" ./build.sh`. A taller dome:
+`SCAD_ARGS="-D dome_h=9" ./build.sh`. Everything else is at the top of
 `heart.scad`.
 
-## How it goes together
+## Fitting it
 
-1. **Frame.** A flat plate 1.2 mm thick lies on the outside of the fabric and
-   hides the cut edge. It has stitch holes 1.6 mm across, about 4.5 mm apart,
-   all the way round. A wall 6 mm tall behind it goes through the hole.
-2. **Film** (outline frame only). Cut the film to the inside of that wall and
-   glue it to the 1.5 mm ledge behind the window. Baking paper or a piece of a
-   white carrier bag both work as a diffuser.
-3. **Cup.** Push it into the back of the frame until its rim sits on the ledge.
-   It is a sliding fit with 0.2 mm of clearance, so add a few drops of glue.
-4. **LED.** Push the LED into the hole in the back of the cup from outside. Its
-   flange sits in a recess. Fix it with hot glue, which also insulates the legs.
-
-To trace the hole on the fabric, draw round the wall on the back of the frame.
+1. Push the LED in from the back until its flange stops in the recess. The
+   recess is 4 mm deep, so the bent legs and solder joints sit inside it.
+2. Fix it with hot glue from the back. That also insulates the legs.
+3. Make a small hole in the fabric where the middle of the heart will go and
+   pass the two wires through. There is no heart-shaped hole to cut.
+4. Sew the heart onto the outside of the fabric through the holes in the rim.
+   The holes are 1.6 mm across and about 4.5 mm apart.
 
 ## Printing
 
-- Frame: front face down, no supports. The face on the bed is the face you see.
-- Cup: back face down, no supports. White reflects the most light.
-- 0.2 mm layers, 0.4 mm nozzle. The walls are 1.2 mm, which is three passes.
-- The full frame's lens is four layers. Use 100% infill so the lens is solid.
+- Flat on its back, no supports. Red PLA or PETG.
+- 0.2 mm layers, or 0.1 mm for a smoother dome. The dome is built in 0.2 mm
+  steps, so the gentle slope near the top shows fine contour lines at any
+  layer height. A light sanding takes them off.
+- Three or more walls and 20% infill is plenty.
 
 ## Things to know
 
-- **Hot spot.** The LED tip ends up about 7 mm behind the window, so the centre
-  will be brighter than the lobes. A diffused LED, a second layer of film, or a
-  larger `cup_depth` all even it out.
-- **Sizes of small parts** are typical values, not measurements: a 5 mm LED
-  with a 5.8 mm flange. `led_d` and `led_flange_d` are at the top of the file.
+- **Only the LED tip lights up.** The heart is solid red, so it does not glow.
+  A wide-angle or diffused LED is easier to see from the side.
+- **LED size** is a typical value, not a measurement: 5 mm body, 5.8 mm
+  flange, 8.6 mm long. If yours is loose or tight, change `led_d` at the top of
+  `heart.scad`.
 - **Small parts and children.** A sewn-on rigid part can be pulled off. This is
   a prototype, not a toy for small children.
 
@@ -66,6 +58,9 @@ To trace the hole on the fabric, draw round the wall on the back of the frame.
 `./build.sh all` runs them and writes the results to `build/`.
 
 - Every STL is a closed, single-piece solid that sits flat on the bed.
-- For each size and both frame styles, the cup pushed home does not intersect
-  the frame. The gap is 0.2 mm at the wall and 0.1 mm at the rim, where the
-  film goes.
+- For each size, a 5 mm LED pushed fully in does not cut into the heart, its
+  tip stands 3.5 mm proud of the dome and its flange sits 3.1 mm inside the
+  back face.
+
+The first version of this part, a frame with a film window and a separate LED
+cup, is in the git history (commit `c7d99c9`).
