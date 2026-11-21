@@ -11,8 +11,14 @@ Nothing here has been printed yet, and most part sizes are typical values, not
 caliper measurements. Read "Measure before printing" first.
 
 There is also a smaller **USB-powered version** with no battery, charger or
-switch, for a prototype that runs from a power bank. See "USB-powered version"
-below.
+switch, for a prototype that runs from a power bank, and a **compact version**
+of that for a perfboard you cut down yourself. See the two sections below.
+
+| Version | 38-pin board (Ellie) | 30-pin board (Bruno) |
+|---|---|---|
+| Battery | 81.4 x 70.6 x 42.5 mm | 83.7 x 70.6 x 42.5 mm |
+| USB-powered | 80.5 x 65.5 x 33.0 mm | 83.7 x 65.5 x 33.0 mm |
+| USB-powered, compact | 67.6 x 51.3 x 33.0 mm | 63.2 x 51.3 x 33.0 mm |
 
 ## What is in this folder
 
@@ -22,6 +28,8 @@ below.
 | `assembly.scad` | Every part placed in the box with colour-coded wires (open in OpenSCAD, F5) |
 | `stl/38pin/`, `stl/30pin/` | Ready-to-print `teddy-box-body.stl` and `teddy-box-lid.stl` for each board |
 | `stl/usb-38pin/`, `stl/usb-30pin/` | The same two parts for the USB-powered version |
+| `stl/compact-38pin/`, `stl/compact-30pin/` | The same two parts for the compact version |
+| `assembly-compact-38pin.html`, `assembly-compact-30pin.html`, `.glb` | The compact version as a 3D page and model |
 | `assembly-usb-38pin.html`, `assembly-usb-30pin.html`, `.glb` | The USB-powered version as a 3D page and model |
 | `assembly-38pin.html`, `assembly-30pin.html` | The wired assembly as a 3D page: double-click, then drag to rotate. No CAD software or internet needed |
 | `assembly-38pin.glb`, `assembly-30pin.glb` | The same assembly for any 3D viewer |
@@ -70,6 +78,50 @@ smaller than this needs a smaller carrier board.
 The same checks pass for this version (see "Checks that were run"), with the
 cable and tie in place of the charger, battery and switch: the tie clears its
 slots by 0.35 mm and a full-size plug clears the opening by 0.39 mm.
+
+## Compact version
+
+![Compact box, open](renders/compact-assembly-overview.png)
+![Compact box, closed](renders/compact-closed.png)
+
+Set `power = "usb"` and `carrier = "compact"` in `enclosure.scad`, or use the
+files in `stl/compact-38pin/` and `stl/compact-30pin/`. It is the USB-powered
+box built round a smaller carrier: 67.6 x 51.3 x 33.0 mm for the 38-pin board
+and 63.2 x 51.3 x 33.0 mm for the 30-pin board.
+
+The carrier is a perfboard you cut to 14 columns of holes, wired as in
+`carrier-compact-38pin.svg` or `carrier-compact-30pin.svg` in the repo root.
+The resistors, diode, transistor and capacitor sit under the ESP32, between its
+two socket strips, and the three connectors stand in a strip beside it.
+
+| | Holes to keep | Board size |
+|---|---|---|
+| 38-pin board | 14 x 21 | 35.6 x 53.3 mm |
+| 30-pin board | 14 x 17 | 35.6 x 43.2 mm |
+
+What is different from the USB-powered box above:
+
+- **No screws in the carrier.** A cut board has no corner holes and has solder
+  joints right up to its corners. It rests on 2 mm ledges under one spare row
+  of holes at each end, and on small posts under the lid fins. Four fins under
+  the lid hold it down.
+- **Nothing may be soldered in the spare rows or in spare column 14.** If you
+  use 20-way socket strips on the 38-pin board, cut them down to 19 first.
+- **The ESP32 overhangs the board** at the antenna end, and on the 30-pin
+  board at the USB end too. The box is sized for the ESP32, not the board.
+- **Lead order.** The leads leave in the order LED, paw, motor, counted from
+  the middle of the box outwards, so none has to cross another.
+- **No motor pocket.** `motor_in_box` is not laid out for this carrier.
+- **Cut edges are rough**, so the board gets 0.4 mm of clearance all round
+  (`cut_tol`). If yours comes out more than about 0.5 mm oversize, file it.
+
+The checks pass for both boards (see "Checks that were run"). On this version
+the 3 mm space for solder joints under the carrier is also checked against the
+box's own supports, and the lid fins clear the MOTOR and PAW connectors by
+1.15 mm.
+
+The length is now set by the ESP32 itself plus the lead strain relief, and the
+width by the 14-column board plus a strip each side for the lid screws.
 
 ## Layout
 

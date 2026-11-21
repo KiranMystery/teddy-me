@@ -2,7 +2,10 @@
 """Export every part of assembly.scad, check the fit, build the viewer.
 
     python tools/build_assembly.py [--board 38pin|30pin] [--power battery|usb]
-                                   [--motor-in-box] [--check-only] [--out NAME]
+                                   [--carrier full|compact] [--motor-in-box]
+                                   [--check-only] [--out NAME]
+
+--carrier compact (the perfboard cut to 14 columns) always means --power usb.
 
 Steps
   1. openscad -D dump=true            -> the parts table (name, label, colour)
@@ -64,6 +67,8 @@ def scad_defs(args):
         d["motor_in_box"] = "true"
     if args.power != "battery":
         d["power"] = f'"{args.power}"'
+    if args.carrier != "full":
+        d["carrier"] = f'"{args.carrier}"'
     return d
 
 
@@ -121,12 +126,16 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--board", default="38pin", choices=["38pin", "30pin"])
     ap.add_argument("--power", default="battery", choices=["battery", "usb"])
+    ap.add_argument("--carrier", default="full", choices=["full", "compact"])
     ap.add_argument("--motor-in-box", action="store_true")
     ap.add_argument("--check-only", action="store_true")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
+    if args.carrier == "compact":
+        args.power = "usb"
 
-    name = args.out or ("assembly-" + ("usb-" if args.power == "usb" else "") + args.board
+    name = args.out or ("assembly-" + ("compact-" if args.carrier == "compact" else
+                                       "usb-" if args.power == "usb" else "") + args.board
                         + ("-motor-in-box" if args.motor_in_box else ""))
     bdir = os.path.join(ROOT, "build", name)
     os.makedirs(bdir, exist_ok=True)
@@ -211,6 +220,13 @@ def main():
         f"{', '.join(bad) or 'nothing intrudes'}")
     for b in bad:
         problems.append(f"{b} is in the space the carrier's solder joints need")
+    if args.carrier == "compact":
+        # on the cut board the joints reach the corners, so the printed supports
+        # under it must stay out of that space too
+        v = vol("keepout", "body")
+        say(f"   the same space against the body's own supports: {v:.4f} mm3")
+        if v > 1e-3:
+            problems.append(f"a support under the carrier is in the space its solder joints need: {v:.3f} mm3")
     if "chg_term" in meshes:
         g = min_gap(meshes["chg_term"], meshes["perfboard"])
         say(f"   charger screw terminal to the bare underside of the carrier: {g:.2f} mm")
@@ -320,7 +336,8 @@ def main():
     with open(os.path.join(HERE, "vendor", "three-bundle.min.js")) as f:
         three = f.read()
     title = ("Teddy box, " + ("30-pin DevKit V1" if args.board == "30pin" else "38-pin DevKitC")
-             + (", USB powered" if args.power == "usb" else "")
+             + (", USB powered, cut carrier" if args.carrier == "compact" else
+                ", USB powered" if args.power == "usb" else "")
              + (", motor inside" if args.motor_in_box else ""))
     html = (html.replace("/*__THREE__*/", three)
                 .replace("/*__PARTS__*/null", json.dumps(data))

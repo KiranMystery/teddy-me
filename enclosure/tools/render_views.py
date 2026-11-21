@@ -28,12 +28,18 @@ VIEWS = [  # file, viewer page, hash
     ("usb-assembly-top.png",       "assembly-usb-38pin.html", "view=top"),
     ("usb-closed-port-side.png",   "assembly-usb-38pin.html", "view=ports&lid=solid&labels=off&zoom=1.3"),
     ("usb-cable-tie.png",          "assembly-usb-38pin.html", "view=iso&lid=solid&labels=off&zoom=1.2"),
+    ("compact-assembly-overview.png", "assembly-compact-38pin.html", "view=iso"),
+    ("compact-assembly-top.png",      "assembly-compact-38pin.html", "view=top"),
+    ("compact-closed.png",            "assembly-compact-38pin.html", "view=iso&lid=solid&labels=off&zoom=1.2"),
+    ("compact-30pin-top.png",         "assembly-compact-30pin.html", "view=top"),
 ]
-PRINT = [  # file, part, power, camera (translate xyz, rotate xyz, distance)
-    ("print-body.png",     "body", "battery", "40,35,16,52,0,28,265"),
-    ("print-lid.png",      "lid",  "battery", "40,35,8,52,0,28,265"),
-    ("usb-print-body.png", "body", "usb",     "40,33,12,52,0,28,250"),
-    ("usb-print-lid.png",  "lid",  "usb",     "40,33,8,52,0,28,250"),
+PRINT = [  # file, part, power, carrier, camera (translate xyz, rotate xyz, distance)
+    ("print-body.png",     "body", "battery", "full", "40,35,16,52,0,28,265"),
+    ("print-lid.png",      "lid",  "battery", "full", "40,35,8,52,0,28,265"),
+    ("usb-print-body.png", "body", "usb",     "full", "40,33,12,52,0,28,250"),
+    ("usb-print-lid.png",  "lid",  "usb",     "full", "40,33,8,52,0,28,250"),
+    ("compact-print-body.png", "body", "usb", "compact", "34,26,12,52,0,28,215"),
+    ("compact-print-lid.png",  "lid",  "usb", "compact", "34,26,8,52,0,28,215"),
 ]
 
 
@@ -51,10 +57,10 @@ def main():
         shutil.rmtree(prof, ignore_errors=True)
     else:
         print("Google Chrome not found: skipping the viewer renders (set CHROME=/path/to/chrome)")
-    for name, part, power, cam in PRINT:
+    for name, part, power, carrier, cam in PRINT:
         subprocess.run(["openscad", "--backend=manifold", "--render", "--imgsize=1600,1100",
                         f"--camera={cam}", "--colorscheme=Tomorrow", "-D", f'part="{part}"',
-                        "-D", f'power="{power}"',
+                        "-D", f'power="{power}"', "-D", f'carrier="{carrier}"',
                         "-o", os.path.join(OUT, name), os.path.join(ROOT, "enclosure.scad")],
                        capture_output=True)
         print("rendered", name)

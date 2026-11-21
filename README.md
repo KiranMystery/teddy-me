@@ -15,6 +15,7 @@ Phone → ESP32 → buzz / light. Two flavours, same buttons:
 | `circuit-led.svg` | LED only, for getting started before the transistor arrives |
 | `circuit-battery.svg` | The in-the-bear build: LiPo, USB-C charger/boost board, on/off switch, plus the same LED, motor and paw button |
 | `carrier-38pin.svg`, `carrier-30pin.svg` | Hole-by-hole perfboard layout of the carrier board, one per ESP32 board type |
+| `carrier-compact-38pin.svg`, `carrier-compact-30pin.svg` | The same circuit on a perfboard cut to 14 columns, with the small parts under the ESP32. For the USB-powered prototype and its smaller box |
 | `enclosure/` | 3D-printable box for the electronics, battery or USB-powered, with a wired 3D view. See its README |
 | `heart/` | 3D-printable stitch-on heart window for the LED on the front of the bear. See its README |
 | `paw/` | 3D-printable squeeze pad that gives the paw button a 25 to 40 mm pressing area. See its README |
@@ -333,6 +334,15 @@ run the bear from a USB power bank plugged into the ESP32's own USB socket.
 - The micro-USB socket tears off easily. The USB-powered box in `enclosure/`
   has two slots for a cable tie that takes the pull instead.
 - Keep the power bank outside the stuffing, and never charge it inside the toy.
+
+For a smaller box, build the **compact carrier** instead:
+`carrier-compact-38pin.svg` or `carrier-compact-30pin.svg`. You cut the
+perfboard down to 14 columns, put the resistors, diode, transistor and
+capacitor under the ESP32 and stand the three connectors in a strip beside it.
+The circuit is the same. Use a 220 µF capacitor no wider than 6.3 mm, because
+it lies on its side, and keep everything under the ESP32 below 10 mm tall. The
+box for it is 67.6 x 51.3 x 33 mm for the 38-pin board (`enclosure/`,
+compact version).
 
 ### Extra parts
 
