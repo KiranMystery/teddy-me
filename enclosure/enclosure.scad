@@ -18,6 +18,9 @@
 
 /* [What to build] */
 board = "38pin";        // "38pin" (Ellie, DevKitC) or "30pin" (Bruno, DevKit V1)
+power = "battery";      // "battery": LiPo + charger board + switch inside the box
+                        // "usb":     no battery. A power bank plugs into the
+                        //            ESP32's own USB socket (prototype build)
 part  = "body";         // "body", "lid" (both in print orientation) or "none"
 motor_in_box = false;   // true: coin motor sits in the pocket inside the box,
                         //       so only two leads (LED, paw) leave the box
@@ -54,6 +57,8 @@ perf_grid_x0    = 5.79; // first hole centre from a SHORT edge (24 holes on 70 m
 perf_grid_y0    = 3.41; // first hole centre from a LONG edge  (18 holes on 50 mm)
 perf_standoff_h = 15;   // underside of the perfboard above the floor.
                         // The charger board and switch live in this space.
+perf_standoff_usb = 5;  // the same for power = "usb": only the carrier's own
+                        // solder joints and links (3 mm) are under the board
 perf_post       = 4.4;  // size of the square corner posts under the board
                         // (kept small: the first solder joints are 5.8 mm in)
 
@@ -128,6 +133,16 @@ exit_pitch  = 6.0;       // spacing between lead exits
 fence_t     = 1.6;       // inner strain-relief fence
 jog         = 3.5;       // sideways step between fence slot and wall slot
 
+/* [USB cable tie, power = "usb" only] */
+// Two slots through the long wall beside the ESP32. A cable tie goes in one,
+// out the other and round the power cable, which loops back from the plug
+// and lies along that wall, so a tug on the cable never reaches the socket.
+cable_tie = true;
+tie_slot  = [4.6, 1.9];  // slot for a 3.6 mm wide tie: length along the wall, height
+tie_x     = 46.5;        // start of the slots along the wall (clear of the lid fins)
+tie_rise  = [3.0, 10.0]; // bottom of each slot above the top of the carrier
+cable_d   = 3.5;         // power cable diameter, only used by assembly.scad
+
 /* [Coin vibration motor pocket]  MEASURE */
 motor_pocket = true;
 motor_d  = 10.0;
@@ -154,6 +169,7 @@ labels   = true;         // deboss PROG / CHARGE next to the USB cut-outs
 $fn = 48;
 ov  = 0.2;               // overlap so that features fuse with walls and floor
 
+usb          = power == "usb";
 esp          = board == "30pin" ? esp_30 : esp_38;
 esp_len      = esp[0];
 esp_pcb_len  = esp[1];
@@ -177,15 +193,25 @@ py0     = bay_y0 + tol;            // perfboard: nominal position of its gutter 
 div_y0  = bay_y0 + perf[1] + 2*tol;
 batt_y0 = div_y0 + div_t;
 batt_slot = batt[2] + batt_t_clear;
-W_in    = batt_y0 + batt_slot;
+// power = "usb": no battery slot. The far side gets a strip like the gutter,
+// just wide enough for the two lid screw bosses.
+W_in    = usb ? div_y0 + gutter : batt_y0 + batt_slot;
 
 fence_x0 = px0 + perf[0] + tol;
-L_in    = max(fence_x0 + fence_t + jog,
-              2*blk + batt[0] + batt_len_clear + batt_lead_room);
+L_in    = usb ? fence_x0 + fence_t + jog
+              : max(fence_x0 + fence_t + jog,
+                    2*blk + batt[0] + batt_len_clear + batt_lead_room);
 
-zs      = perf_standoff_h;         // perfboard underside
+zs      = usb ? perf_standoff_usb : perf_standoff_h;   // perfboard underside
 zt      = zs + perf[2];            // perfboard top
-H_in    = max(batt[1] + batt_h_clear, zt + esp_stack + top_clear + rim_h);
+// power = "usb": the box is only as tall as the ESP32 needs. The lid rim on
+// the port wall must also stay 0.3 mm above the USB cut-out, which a full-size
+// plug body fills.
+H_in    = usb ? max(zt + esp_stack + top_clear + rim_h,
+                    zt + header_h + pin_spacer_h + esp_pcb_t + esp_usb_h
+                       + esp_cut[1]/2 + 0.3 + rim_h)
+              : max(batt[1] + batt_h_clear, zt + esp_stack + top_clear + rim_h);
+tie_z   = [zt + tie_rise[0], zt + tie_rise[1]];        // bottoms of the two tie slots
 
 n_exits  = motor_in_box ? n_leads - 1 : n_leads;
 fence_len= (n_exits - 1)*exit_pitch + 3 + jog + 3.5;
@@ -229,9 +255,11 @@ L_out = L_in + 2*wall;  W_out = W_in + 2*wall;  H_out = floor_t + H_in + lid_t;
 
 // The charger sits under the ESP32, between the two header rows, where the
 // carrier has no solder joints or links. Its screw terminal still needs air.
-assert(perf_standoff_h >= chg_standoff_h + chg[2] + chg_top_h + 0.8,
+assert(usb || perf_standoff_h >= chg_standoff_h + chg[2] + chg_top_h + 0.8,
        "perf_standoff_h too low: the charger's screw terminal would touch the carrier");
-assert(sw_zc + sw_recess[1]/2 + 1.2 <= zs - 0.5, "switch recess reaches the perfboard");
+assert(usb || sw_zc + sw_recess[1]/2 + 1.2 <= zs - 0.5, "switch recess reaches the perfboard");
+assert(!usb || perf_standoff_usb >= 4, "perf_standoff_usb too low for the carrier's solder joints");
+assert(!usb || !cable_tie || tie_z[1] + tie_slot[1] + 1.5 <= H_in - rim_h, "tie slot reaches the lid rim");
 assert(motor_t + 0.4 + 1.2 <= gutter, "motor pocket does not fit in the gutter");
 assert(corner_r >= edge_r);
 if (part != "none")
@@ -294,10 +322,22 @@ module lid_bosses() {
                 cube([boss_off + ov, boss_off + ov, H_in + ov], center = true);
         }
     }
-    // battery-side corners: solid end blocks, so the battery only ever
-    // touches flat walls
-    box(-ov, blk, batt_y0 - ov, W_in + ov, -ov, H_in);
-    box(L_in - blk, L_in + ov, batt_y0 - ov, W_in + ov, -ov, H_in);
+    if (usb) {
+        // far-side corners: the same round columns, mirrored
+        for (b = [boss_xy[2], boss_xy[3]]) {
+            sx = b[0] < L_in/2 ? -1 : 1;
+            hull() {
+                translate([b[0], b[1], -ov]) cylinder(r = boss_r, h = H_in + ov);
+                translate([b[0] + sx*(boss_off + ov)/2, W_in - (boss_off - ov)/2 + ov/2, -ov + (H_in + ov)/2])
+                    cube([boss_off + ov, boss_off + ov, H_in + ov], center = true);
+            }
+        }
+    } else {
+        // battery-side corners: solid end blocks, so the battery only ever
+        // touches flat walls
+        box(-ov, blk, batt_y0 - ov, W_in + ov, -ov, H_in);
+        box(L_in - blk, L_in + ov, batt_y0 - ov, W_in + ov, -ov, H_in);
+    }
 }
 
 module divider() {
@@ -312,6 +352,10 @@ module perf_posts() {
     box(-ov, px0 + p, bay_y0 - lip, bay_y0, -ov, zt);
     // port end, battery side (the divider is its fence)
     box(-ov, px0 + p, div_y0 - tol - p, div_y0 + ov, -ov, zs);
+    if (usb) {   // no divider: the far edge gets its own lips, like the gutter side
+        box(-ov, px0 + p, div_y0, div_y0 + lip, -ov, zt);
+        box(x1 - p, fence_x0 + lip, div_y0, div_y0 + lip, -ov, zt);
+    }
     // antenna end, gutter side
     box(x1 - p, fence_x0 + lip, bay_y0 - lip, py0 + p, -ov, zs);
     box(x1 - p, fence_x0 + lip, bay_y0 - lip, bay_y0, -ov, zt);
@@ -361,7 +405,7 @@ module motor_pocket_walls() {
 }
 
 module strain_fence() {
-    box(fence_x0, fence_x0 + fence_t, fence_y0, div_y0 + ov, -ov, H_in);
+    box(fence_x0, fence_x0 + fence_t, fence_y0, (usb ? W_in : div_y0) + ov, -ov, H_in);
     box(fence_x0, L_in + ov, fence_y0, fence_y0 + fence_t, -ov, H_in);
 }
 module lead_notch(x0, x1, y, flare = false) {
@@ -389,28 +433,35 @@ module body() {
         union() {
             difference() { shell(-floor_t, H_in); cavity(); }
             lid_bosses();
-            divider();
             perf_posts();
-            chg_mount();
-            switch_block();
+            if (!usb) {
+                divider();
+                chg_mount();
+                switch_block();
+            }
             if (motor_pocket) motor_pocket_walls();
             strain_fence();
         }
         // --- openings in the port wall ---
         yz_cut(ue_y, ue_z, esp_cut[0], esp_cut[1], cut_r, 0.5);      // ESP32 USB
-        yz_cut(up_y, up_z, cut_c[0], cut_c[1], cut_r, 0.5);          // charging USB-C
-        switch_cuts();
-        if (labels) {
-            port_label("PROG", ue_y, ue_z - esp_cut[1]/2 - 3.6);
-            port_label("CHARGE", up_y, up_z + cut_c[1]/2 + 3.6);
+        if (!usb) {
+            yz_cut(up_y, up_z, cut_c[0], cut_c[1], cut_r, 0.5);      // charging USB-C
+            switch_cuts();
         }
+        if (labels) {
+            port_label(usb ? "USB 5V" : "PROG", ue_y, ue_z - esp_cut[1]/2 - 3.6);
+            if (!usb) port_label("CHARGE", up_y, up_z + cut_c[1]/2 + 3.6);
+        }
+        // --- cable tie slots in the gutter wall (power = "usb") ---
+        if (usb && cable_tie) for (z = tie_z)
+            box(tie_x, tie_x + tie_slot[0], -wall - 1, 0.5, z, z + tie_slot[1]);
         // --- lead exits: slot in the fence, offset slot in the wall ---
         for (i = [0 : n_exits - 1]) {
             lead_notch(fence_x0 - ov, fence_x0 + fence_t + ov, fence_notch_y(i));
             lead_notch(L_in - ov, L_in + wall + ov, wall_notch_y(i), flare = true);
         }
         // --- battery lead window in the divider ---
-        translate([0, div_y0 - ov, 0]) rotate([90, 0, 0]) mirror([0, 0, 1])
+        if (!usb) translate([0, div_y0 - ov, 0]) rotate([90, 0, 0]) mirror([0, 0, 1])
             linear_extrude(div_t + 2*ov)
                 rrect(win_x0, win_z0, win_x0 + win[0], win_z0 + win[1], 2);
         // --- screw holes ---
@@ -423,9 +474,10 @@ module body() {
                 cylinder(d1 = lid_insert ? lid_insert_d : lid_pilot_d,
                          d2 = (lid_insert ? lid_insert_d : lid_pilot_d) + 1.2, h = 0.6, $fn = 32);
         }
-        for (h = perf_hole_xy) translate([h[0], h[1], zs - 7])
-            cylinder(d = m2_pilot_d, h = 8, $fn = 24);
-        for (h = chg_holes) translate([chg_x0 + h[0], chg_y0 + h[1], -1.3])
+        // (never deeper than 0.8 mm short of the outside of the floor)
+        for (h = perf_hole_xy) translate([h[0], h[1], max(zs - 7, 0.8 - floor_t)])
+            cylinder(d = m2_pilot_d, h = zs + 1 - max(zs - 7, 0.8 - floor_t), $fn = 24);
+        if (!usb) for (h = chg_holes) translate([chg_x0 + h[0], chg_y0 + h[1], -1.3])
             cylinder(d = m2_pilot_d, h = chg_z + 2.3, $fn = 24);
     }
 }
@@ -460,7 +512,9 @@ module lid() {
     difference() {
         union() {
             shell(H_in + lid_t, H_in);
-            rim_bar(g, g + rim_t, blk + 0.6, div_y0 - 0.6);                 // port wall
+            rim_bar(g, g + rim_t, blk + 0.6, (usb ? W_in - blk : div_y0) - 0.6);   // port wall
+            if (usb) rim_bar(blk + 0.6, min(L_in - blk, fence_x0) - 0.6,
+                             W_in - g - rim_t, W_in - g);                  // far wall
             rim_bar(blk + 0.6, L_in - blk - 0.6, g, g + rim_t);             // gutter wall
             rim_bar(L_in - g - rim_t, L_in - g, blk + 0.6, fence_y0 - 0.6); // antenna wall
             if (holddown) holddown_fins();

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Export every part of assembly.scad, check the fit, build the viewer.
 
-    python tools/build_assembly.py [--board 38pin|30pin] [--motor-in-box]
-                                   [--check-only] [--out NAME]
+    python tools/build_assembly.py [--board 38pin|30pin] [--power battery|usb]
+                                   [--motor-in-box] [--check-only] [--out NAME]
 
 Steps
   1. openscad -D dump=true            -> the parts table (name, label, colour)
@@ -12,7 +12,8 @@ Steps
        * solid parts do not intersect each other, the body or the lid
        * wires only touch the parts they are soldered or plugged into
        * a worst-case USB plug pushed into each socket clears the wall
-       * the switch lever clears its slot in both positions
+       * the switch lever clears its slot in both positions (battery build)
+       * the cable tie passes through its two slots (usb build)
        * smallest gap between each part and the printed box
   4. <NAME>.glb and <NAME>.html (self-contained three.js viewer)
 
@@ -61,6 +62,8 @@ def scad_defs(args):
     d = {"board": f'"{args.board}"'}
     if args.motor_in_box:
         d["motor_in_box"] = "true"
+    if args.power != "battery":
+        d["power"] = f'"{args.power}"'
     return d
 
 
@@ -117,12 +120,14 @@ def min_gap(a, b, n=4000):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--board", default="38pin", choices=["38pin", "30pin"])
+    ap.add_argument("--power", default="battery", choices=["battery", "usb"])
     ap.add_argument("--motor-in-box", action="store_true")
     ap.add_argument("--check-only", action="store_true")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
-    name = args.out or f"assembly-{args.board}" + ("-motor-in-box" if args.motor_in_box else "")
+    name = args.out or ("assembly-" + ("usb-" if args.power == "usb" else "") + args.board
+                        + ("-motor-in-box" if args.motor_in_box else ""))
     bdir = os.path.join(ROOT, "build", name)
     os.makedirs(bdir, exist_ok=True)
 
@@ -161,7 +166,10 @@ def main():
     wires = [n for n in names if n.startswith("w_")]
     plugs = [n for n in names if n.startswith("plug_")] + ["keepout"]
     box = ["body", "lid"]
-    solids = [n for n in names if n not in wires + plugs + box + ["lid_screws"]]
+    # the power cable and its tie are outside the box (the tie passes through
+    # the wall): they get their own check in section 4
+    outside = [n for n in names if n in ("usb_cable", "cable_tie")]
+    solids = [n for n in names if n not in wires + plugs + box + outside + ["lid_screws"]]
 
     def vol(a, b):
         ba, bb = meshes[a].bounds, meshes[b].bounds
@@ -203,8 +211,12 @@ def main():
         f"{', '.join(bad) or 'nothing intrudes'}")
     for b in bad:
         problems.append(f"{b} is in the space the carrier's solder joints need")
-    g = min_gap(meshes["chg_term"], meshes["perfboard"])
-    say(f"   charger screw terminal to the bare underside of the carrier: {g:.2f} mm")
+    if "chg_term" in meshes:
+        g = min_gap(meshes["chg_term"], meshes["perfboard"])
+        say(f"   charger screw terminal to the bare underside of the carrier: {g:.2f} mm")
+    else:
+        g = meshes["keepout"].bounds[0][2] - meshes["body"].bounds[0][2] - 2.0
+        say(f"   air between that 3 mm space and the floor: {g:.2f} mm")
 
     say()
     say("3. Wires (may only touch the parts they are joined to)")
@@ -223,6 +235,8 @@ def main():
     say()
     say("4. Openings line up (worst-case plug body pushed fully home, lever in both positions)")
     for pl, sock in (("plug_esp", "esp_usb"), ("plug_chg", "chg_usb")):
+        if pl not in meshes:
+            continue
         v = vol(pl, "body") + vol(pl, "lid")
         g = min(min_gap(meshes[pl], meshes["body"]), min_gap(meshes[pl], meshes["lid"]))
         pc, sc = meshes[pl].bounds.mean(axis=0), meshes[sock].bounds.mean(axis=0)
@@ -230,18 +244,27 @@ def main():
             f"plug centre vs socket centre dy={pc[1]-sc[1]:+.2f} dz={pc[2]-sc[2]:+.2f} mm")
         if v > 1e-3 or abs(pc[1] - sc[1]) > 0.05 or abs(pc[2] - sc[2]) > 0.05:
             problems.append(f"{pl} does not line up with its cut-out")
-    lever = meshes["sw_lever"]
-    b = lever.bounds
-    travel = 2 * (b.mean(axis=0)[1] - meshes["switch"].bounds.mean(axis=0)[1])
-    other = lever.copy()
-    other.apply_translation([0, -travel, 0])
-    for label, lv in (("on", lever), ("off", other)):
-        v = float((to_manifold(lv) ^ mans["body"]).volume())
-        g = min_gap(lv, meshes["body"], 1500)
-        say(f"   switch lever, {label:3s} position: intersection {v:.4f} mm3, gap to slot {g:.2f} mm, "
-            f"tip is {b[0][0] - meshes['body'].bounds[0][0]:.2f} mm inside the outer wall face")
-        if v > 1e-3:
-            problems.append("switch lever hits its slot")
+    if "sw_lever" in meshes:
+        lever = meshes["sw_lever"]
+        b = lever.bounds
+        travel = 2 * (b.mean(axis=0)[1] - meshes["switch"].bounds.mean(axis=0)[1])
+        other = lever.copy()
+        other.apply_translation([0, -travel, 0])
+        for label, lv in (("on", lever), ("off", other)):
+            v = float((to_manifold(lv) ^ mans["body"]).volume())
+            g = min_gap(lv, meshes["body"], 1500)
+            say(f"   switch lever, {label:3s} position: intersection {v:.4f} mm3, gap to slot {g:.2f} mm, "
+                f"tip is {b[0][0] - meshes['body'].bounds[0][0]:.2f} mm inside the outer wall face")
+            if v > 1e-3:
+                problems.append("switch lever hits its slot")
+    for o in outside:
+        v = vol(o, "body") + vol(o, "lid")
+        hit = [s for s in solids + wires + [x for x in outside if x != o] if vol(o, s) > 1e-3]
+        g = min(min_gap(meshes[o], meshes["body"], 1500), min_gap(meshes[o], meshes["lid"], 1500))
+        say(f"   {o}: intersection with box {v:.4f} mm3, smallest gap to the box {g:.2f} mm, "
+            f"touches: {', '.join(hit) or 'nothing'}")
+        if v > 1e-3 or hit:
+            problems.append(f"{o} hits the box or a part")
 
     say()
     say("5. Smallest gap from each part to the printed box (mm; 0.0x = resting on it)")
@@ -297,6 +320,7 @@ def main():
     with open(os.path.join(HERE, "vendor", "three-bundle.min.js")) as f:
         three = f.read()
     title = ("Teddy box, " + ("30-pin DevKit V1" if args.board == "30pin" else "38-pin DevKitC")
+             + (", USB powered" if args.power == "usb" else "")
              + (", motor inside" if args.motor_in_box else ""))
     html = (html.replace("/*__THREE__*/", three)
                 .replace("/*__PARTS__*/null", json.dumps(data))

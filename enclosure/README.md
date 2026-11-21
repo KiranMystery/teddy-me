@@ -10,6 +10,10 @@ motor, LED and paw-button leads.
 Nothing here has been printed yet, and most part sizes are typical values, not
 caliper measurements. Read "Measure before printing" first.
 
+There is also a smaller **USB-powered version** with no battery, charger or
+switch, for a prototype that runs from a power bank. See "USB-powered version"
+below.
+
 ## What is in this folder
 
 | File | What it is |
@@ -17,6 +21,8 @@ caliper measurements. Read "Measure before printing" first.
 | `enclosure.scad` | The parametric model: box body and lid. All dimensions are in one block at the top |
 | `assembly.scad` | Every part placed in the box with colour-coded wires (open in OpenSCAD, F5) |
 | `stl/38pin/`, `stl/30pin/` | Ready-to-print `teddy-box-body.stl` and `teddy-box-lid.stl` for each board |
+| `stl/usb-38pin/`, `stl/usb-30pin/` | The same two parts for the USB-powered version |
+| `assembly-usb-38pin.html`, `assembly-usb-30pin.html`, `.glb` | The USB-powered version as a 3D page and model |
 | `assembly-38pin.html`, `assembly-30pin.html` | The wired assembly as a 3D page: double-click, then drag to rotate. No CAD software or internet needed |
 | `assembly-38pin.glb`, `assembly-30pin.glb` | The same assembly for any 3D viewer |
 | `renders/` | PNG views |
@@ -25,6 +31,45 @@ caliper measurements. Read "Measure before printing" first.
 The box is 81.4 x 70.6 x 42.5 mm outside for the 38-pin board (Ellie) and
 83.7 x 70.6 x 42.5 mm for the 30-pin board (Bruno). The 30-pin box is 2.3 mm
 longer because that board overhangs the end of the perfboard (see below).
+
+## USB-powered version
+
+![USB-powered box, closed](renders/usb-cable-tie.png)
+![USB-powered box, open](renders/usb-assembly-overview.png)
+
+Set `power = "usb"` in `enclosure.scad`, or use the files in `stl/usb-38pin/`
+and `stl/usb-30pin/`. A power bank plugs into the ESP32's own USB socket, so
+the battery slot, the charger mounts, the switch and the second USB opening
+are all gone.
+
+| | Battery version | USB-powered version |
+|---|---|---|
+| 38-pin board (Ellie) | 81.4 x 70.6 x 42.5 mm | 80.5 x 65.5 x 33.0 mm |
+| 30-pin board (Bruno) | 83.7 x 70.6 x 42.5 mm | 83.7 x 65.5 x 33.0 mm |
+
+What is different:
+
+- **One opening**, marked USB 5V, for the plug in the ESP32. It is sized for
+  the largest plug body the USB standard allows.
+- **Carrier 5 mm above the floor** instead of 15 mm, because nothing sits under
+  it. That is 3 mm for its solder joints and links, plus 2 mm of air.
+- **Cable tie slots.** Two slots through the long wall beside the ESP32. Loop
+  the power cable back from the plug, lay it along that wall and tie it down
+  through the slots with a 3.6 mm cable tie. A tug on the cable then pulls on
+  the box, not on the ESP32's socket. Thread the tie before the carrier goes
+  in: in through one slot, out through the other.
+- **Three carrier screws** instead of two. With no 5 V IN connector fitted, the
+  far corner at the USB end is free for an M2 x 5 screw.
+- **Four lid screws** as before. The strip that held the battery shrinks to a
+  5 mm strip that only holds the two far lid screw posts.
+
+The length is set by the 70 mm carrier plus the lead strain relief, and the
+width by the 50 mm carrier plus a strip each side for the lid screws. Going
+smaller than this needs a smaller carrier board.
+
+The same checks pass for this version (see "Checks that were run"), with the
+cable and tie in place of the charger, battery and switch: the tie clears its
+slots by 0.35 mm and a full-size plug clears the opening by 0.39 mm.
 
 ## Layout
 

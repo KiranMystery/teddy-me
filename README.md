@@ -15,6 +15,8 @@ Phone → ESP32 → buzz / light. Two flavours, same buttons:
 | `circuit-led.svg` | LED only, for getting started before the transistor arrives |
 | `circuit-battery.svg` | The in-the-bear build: LiPo, USB-C charger/boost board, on/off switch, plus the same LED, motor and paw button |
 | `carrier-38pin.svg`, `carrier-30pin.svg` | Hole-by-hole perfboard layout of the carrier board, one per ESP32 board type |
+| `enclosure/` | 3D-printable box for the electronics, battery or USB-powered, with a wired 3D view. See its README |
+| `heart/` | 3D-printable stitch-on heart window for the LED on the front of the bear. See its README |
 | `teddy_bear_ble/teddy_bear_ble.ino` | **Bluetooth** ESP32 sketch |
 | `app-ble.html` | **Bluetooth** control page (Web Bluetooth) |
 | `teddy_bear/teddy_bear.ino` | **WiFi** ESP32 sketch, control page embedded in it |
@@ -317,6 +319,19 @@ The bench circuit runs from USB through a screw-terminal adapter. For the bear
 it becomes three things in a printed box: a **battery and charger**, a soldered
 **carrier board** the ESP32 plugs into, and **leads** out to the motor, LED and
 paw button. Schematic: `circuit-battery.svg`. The firmware does not change.
+
+### Prototype without a battery
+
+For a first build you can leave out the battery, charger board and switch and
+run the bear from a USB power bank plugged into the ESP32's own USB socket.
+
+- The carrier board is built exactly as drawn. Leave the 5 V IN connector off.
+  The ESP32's 5V / VIN pin then feeds the motor rail, at about 4.7 V.
+- Many power banks switch off when the load is small. Leave the bear plugged
+  in and idle for ten minutes to find out whether yours does.
+- The micro-USB socket tears off easily. The USB-powered box in `enclosure/`
+  has two slots for a cable tie that takes the pull instead.
+- Keep the power bank outside the stuffing, and never charge it inside the toy.
 
 ### Extra parts
 

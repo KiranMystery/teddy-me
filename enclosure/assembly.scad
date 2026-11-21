@@ -22,7 +22,7 @@ dump     = false;       // echo the parts table and exit
 //  Parts table: name, label for the viewer, colour, group
 // ------------------------------------------------------------------
 esp_label = board == "30pin" ? "ESP32 DevKit V1 (30-pin)" : "ESP32 DevKitC (38-pin)";
-parts = [
+parts_all = [
  ["body",       "Box body (printed)",                 "#e7a23b", "box"],
  ["lid",        "Lid (printed)",                      "#f0b860", "box"],
  ["lid_screws", "4 x M3x10 countersunk lid screws",   "#b9bec6", "box"],
@@ -30,7 +30,7 @@ parts = [
  ["headers",    "Female headers",                     "#26262b", "carrier"],
  ["esp_pcb",    esp_label,                            "#15171c", "carrier"],
  ["esp_shield", "",                                   "#c5c9cf", "carrier"],
- ["esp_usb",    "ESP32 USB (reflash)",                "#d9dce1", "carrier"],
+ ["esp_usb",    usb ? "ESP32 USB (power in and reflash)" : "ESP32 USB (reflash)", "#d9dce1", "carrier"],
  ["esp_btn",    "",                                   "#3b3f47", "carrier"],
  ["r1",         "R1 220 ohm (LED)",                   "#d9b382", "carrier"],
  ["r2",         "R2 1 k (base)",                      "#d9b382", "carrier"],
@@ -42,7 +42,7 @@ parts = [
  ["j_motor",    "MOTOR connector",                    "#f1ede0", "carrier"],
  ["j_led",      "LED connector",                      "#f1ede0", "carrier"],
  ["j_paw",      "PAW connector",                      "#f1ede0", "carrier"],
- ["screws_m2",  "6 x M2x5 self-tapping screws",       "#b9bec6", "carrier"],
+ ["screws_m2",  usb ? "3 x M2x5 self-tapping screws" : "6 x M2x5 self-tapping screws", "#b9bec6", "carrier"],
  ["chg_pcb",    "USB-C charger + 5 V boost (Adafruit 6106)", "#20304f", "power"],
  ["chg_usb",    "Charging port (USB-C)",              "#d9dce1", "power"],
  ["chg_jst",    "Battery socket + plug",              "#efe6c8", "power"],
@@ -51,6 +51,8 @@ parts = [
  ["battery",    "LiPo cell 3.7 V 2000 mAh",           "#8d98a8", "power"],
  ["switch",     "Slide switch (on/off)",              "#3d4250", "power"],
  ["sw_lever",   "",                                   "#f2f2f2", "power"],
+ ["usb_cable",  "USB cable from the power bank",      "#2b2d33", "power"],
+ ["cable_tie",  "Cable tie (strain relief)",          "#f4f4f4", "power"],
  ["motor",      "Coin vibration motor",               "#aeb4bd", "leads"],
  ["led",        "LED",                                "#ff4b3e", "leads"],
  ["button",     "Paw push button",                    "#4a4f5a", "leads"],
@@ -67,6 +69,13 @@ parts = [
  ["plug_chg",   "USB-C plug in the charger (check only)", "#777777", "check"],
  ["keepout",    "3 mm of solder joints and links under the carrier (check only)", "#cc3333", "check"],
 ];
+// power = "usb" has no charger, battery, switch or 5 V IN connector;
+// power = "battery" has no power cable and tie.
+only_battery = ["chg_pcb", "chg_usb", "chg_jst", "chg_term", "chg_parts", "battery", "switch",
+                "sw_lever", "w_batt", "w_en", "plug_chg", "j_pwr"];
+only_usb     = ["usb_cable", "cable_tie"];
+function has(list, x) = len([for (e = list) if (e == x) 1]) > 0;
+parts = [for (p = parts_all) if (!has(usb ? only_battery : only_usb, p[0])) p];
 if (dump) for (p = parts) echo(str("PART|", p[0], "|", p[1], "|", p[2], "|", p[3]));
 
 // ------------------------------------------------------------------
@@ -179,7 +188,11 @@ module m2(x, y, z, len = 5) translate([x, y, z]) {
 // holes; that edge is held by the fins under the lid instead.
 P("screws_m2") {
     for (h = perf_hole_xy) if (h[1] < py0 + perf[1]/2) m2(h[0], h[1], zt);
-    for (h = chg_holes) m2(chg_x0 + h[0], chg_y0 + h[1], chg_z + chg[2]);
+    if (usb) {
+        // with no 5 V IN connector, the far corner at the USB end is free too
+        for (h = perf_hole_xy) if (h[1] > py0 + perf[1]/2 && h[0] < px0 + perf[0]/2) m2(h[0], h[1], zt);
+    } else
+        for (h = chg_holes) m2(chg_x0 + h[0], chg_y0 + h[1], chg_z + chg[2]);
 }
 
 // ------------------------------------------------------------------
@@ -256,10 +269,10 @@ under = 1.2;                                          // switch wires run under 
 
 // screw terminal + / - -> up the gutter -> across the USB end of the ESP32
 // -> the 5 V IN plug
-P("w_5v") wire([[term_x - 2, tp[0], term_z], [rise_r, tp[0], term_z], [rise_r, gut_y, term_z],
+if (!usb) P("w_5v") wire([[term_x - 2, tp[0], term_z], [rise_r, tp[0], term_z], [rise_r, gut_y, term_z],
                 [rise_r, gut_y, z_pw_r], [xt_r, gut_y, z_pw_r], [xt_r, hy(2), z_pw_r],
                 [hx(24) + 0.9, hy(2), z_pw_r], [hx(24) + 0.9, hy(2), zt + jst_top]]);
-P("w_gnd") {
+if (!usb) P("w_gnd") {
     wire([[term_x - 2, tp[1], term_z], [rise_k, tp[1], term_z], [rise_k, tp[1], term_z + 1.6],
           [rise_k, gut_y, term_z + 1.6], [rise_k, gut_y, z_pw_k], [xt_k, gut_y, z_pw_k],
           [xt_k, hy(1), z_pw_k], [hx(24) - 0.9, hy(1), z_pw_k], [hx(24) - 0.9, hy(1), zt + jst_top]]);
@@ -277,6 +290,37 @@ P("w_batt")
 P("w_en")
     wire([[sw_pin_x, sw_yc + 2.5, sw_zc], [sw_pin_x + 0.6, sw_yc + 2.5, sw_zc], [sw_pin_x + 0.6, sw_yc + 2.5, under],
           [pad_en, chg_y0 + chg[1] + 3, under], [pad_en, pad_y, under], [pad_en, pad_y, chg_top + 0.4]]);
+
+// ------------------------------------------------------------------
+//  power = "usb": the power bank's cable. It plugs into the ESP32, loops
+//  back and is tied to the long wall beside the ESP32 through the two slots.
+// ------------------------------------------------------------------
+plug_len  = 20;                                   // moulded plug body
+cab_y     = -wall - cable_d/2 - 0.5;              // cable centre along the wall
+cab_z     = (tie_z[0] + tie_z[1] + tie_slot[1])/2;
+loop_x    = esp_mouth_x - 1.0 - plug_len - 9;     // where the U-turn starts
+loop_r    = (ue_y - cab_y)/2;
+loop_yc   = (ue_y + cab_y)/2;
+P("usb_cable") {
+    translate([esp_mouth_x - 1.0 - plug_len, ue_y - 5.3, ue_z - 3.5]) cube([plug_len, 10.6, 7.0]);
+    translate([esp_mouth_x - 1.0 - plug_len - 8, ue_y, ue_z]) rotate([0, 90, 0])
+        cylinder(d1 = cable_d + 0.6, d2 = 6, h = 8.01, $fn = 24);          // strain boot
+    wire(concat(
+        [[esp_mouth_x - 1.0 - plug_len - 7, ue_y, ue_z], [loop_x, ue_y, ue_z]],
+        [for (a = [15 : 15 : 165])
+            [loop_x - loop_r*sin(a), loop_yc + loop_r*cos(a), ue_z + (cab_z - ue_z)*a/180]],
+        [[loop_x, cab_y, cab_z], [tie_x + tie_slot[0] + 40, cab_y, cab_z]]), cable_d);
+}
+tie_t = 1.2;  tie_w = 3.6;                         // cable tie section
+tie_xc = tie_x + tie_slot[0]/2;
+tie_yi = 1.0;                                      // inside the box, in the gutter
+tie_yo = cab_y - cable_d/2 - 0.4 - tie_t;          // outside, beyond the cable
+P("cable_tie") {
+    for (z = tie_z) translate([tie_xc - tie_w/2, tie_yo, z + (tie_slot[1] - tie_t)/2])
+        cube([tie_w, tie_yi + tie_t - tie_yo, tie_t]);
+    for (y = [tie_yo, tie_yi]) translate([tie_xc - tie_w/2, y, tie_z[0] + (tie_slot[1] - tie_t)/2])
+        cube([tie_w, tie_t, tie_z[1] - tie_z[0] + tie_t]);
+}
 
 // ------------------------------------------------------------------
 //  The three leads (two wires each, stacked where the lid pinches them)
