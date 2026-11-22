@@ -40,6 +40,12 @@ for d in sys.argv[1:]:
     g = gap(base, ring)
     print(f"   ring on base: intersection {v:.4f} mm3, gap {g:.2f} mm")
     ok &= v < 1e-3
+    # push fit: lifted 0.6 mm, the ring must run into the bumps on the base
+    up = ring.copy(); up.apply_translation([0, 0, 0.6])
+    vs_ = (mb ^ man(up)).volume()
+    print(f"   push fit: ring lifted 0.6 mm overlaps the base bumps by {vs_:.3f} mm3 "
+          f"({'it catches' if vs_ > 0.02 else 'NOTHING HOLDS IT'})")
+    ok &= vs_ > 0.02
     v = (mb ^ ms).volume()
     print(f"   switch in its pocket: intersection {v:.4f} mm3, gap to the ribs {gap(sw, base):.2f} mm "
           f"(0.00 = the legs lie on the floor)")

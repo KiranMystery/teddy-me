@@ -15,13 +15,14 @@ Nothing here has been printed yet.
 |---|---|
 | `paw-pad-base.stl` | Dish that holds the switch and the two wires. Four tabs with holes to sew it in place |
 | `paw-pad-plate.stl` | Loose disc that rests on the switch plunger. This is what you press |
-| `paw-pad-ring.stl` | Slips over the base and keeps the plate in |
+| `paw-pad-ring.stl` | Pushes over the base and clicks on. It keeps the plate in and locks the pod together |
 
-Four sizes are built, in `stl/15mm`, `stl/25mm`, `stl/30mm` and `stl/40mm`.
-The number is the diameter of the plate:
+Five sizes are built, in `stl/10mm`, `stl/15mm`, `stl/25mm`, `stl/30mm` and
+`stl/40mm`. The number is the diameter of the plate:
 
 | Plate | Pod across | Across the sewing tabs | Height |
 |---|---|---|---|
+| 10 mm | 18.1 mm | 27.1 mm | 10.8 mm |
 | 15 mm | 23.1 mm | 32.1 mm | 10.8 mm |
 | 25 mm | 33.1 mm | 42.1 mm | 10.8 mm |
 | 30 mm | 38.1 mm | 47.1 mm | 10.8 mm |
@@ -38,6 +39,25 @@ round the plate. Its base is laid out differently. The wire slot and the two
 posts are a quarter turn round, on a side of the switch that has no legs,
 because on a pod this small they would otherwise land on the legs. Plates
 under 19 mm get this layout automatically.
+
+## The 10 mm pad
+
+![The 10 mm pad](renders/paw-pad-10mm.png)
+![Base of the 10 mm pad](renders/paw-pad-10mm-base.png)
+
+This is the smallest the design goes: the pod is 18 mm across and the switch
+body alone is 6 mm. There is no room inside for the two posts or for a wire to
+pass round the switch, so it is wired differently:
+
+- Both wires go on the two legs on **one side** of the switch, and leave
+  straight out through one wide slot in front of them.
+- **Check that pair with a meter first.** The two legs you use must connect
+  only while the button is pressed. On the 6 mm switches I know of, the two
+  legs on one side are that pair, and the legs opposite each other across the
+  body are joined all the time. I could not confirm this from a datasheet, so
+  test yours before soldering.
+- Trim all four legs to 2 mm after bending them out flat, or they will not fit.
+- There is nothing to pinch the wires, so put a drop of hot glue in the slot.
 
 ## How it works
 
@@ -71,9 +91,28 @@ its body to the top of its plunger. Common 6 mm switches come in 4.3, 5, 7 and
    round the switch to the posts: there is 3 mm between the leg ends and the
    wall.
 4. Drop the plate in, flange down.
-5. Slip the ring over the base until it stops on the wall. Check that the plate
-   wiggles freely and the switch is not already pressed, then glue the ring.
+5. Push the ring down over the base until it clicks and stops on the wall. It
+   goes on at any angle. Check that the plate wiggles freely and the switch is
+   not already pressed. No glue is needed. To open it again, lever the ring's
+   lower edge outwards with a fingernail or a small screwdriver.
 6. Sew the pod inside the paw through the tabs, plate facing outwards.
+
+## The push fit
+
+![Cut through the 10 mm pad](renders/paw-pad-snap.png)
+
+Three small bumps on the outside of the base wall click into a groove that runs
+all the way round the inside of the ring. Each bump has a sloping top, which
+the ring rides over on the way down, and a flat underside, which the groove
+catches on.
+
+The fit depends on your printer. The bumps stand 0.4 mm out of the wall and the
+ring has 0.15 mm of clearance, so they catch by 0.25 mm.
+
+- Ring falls off or does not click: `SCAD_ARGS="-D snap_h=0.5" ./build.sh`
+- Ring will not go on, or cracks: `SCAD_ARGS="-D snap_h=0.3" ./build.sh`.
+  PETG flexes more than PLA and is the safer choice for the ring.
+- Plain ring to glue on, as before: `SCAD_ARGS="-D snap=false" ./build.sh`
 
 ## Printing
 
@@ -99,3 +138,5 @@ its body to the top of its plunger. Common 6 mm switches come in 4.3, 5, 7 and
   into the base, the ring or the switch body.
 - The switch body fits its pocket and the ring fits the base without
   intersecting.
+- The ring, lifted 0.6 mm from its seated position, runs into the bumps on the
+  base, so the push fit does hold it. How hard it holds is not calculated.

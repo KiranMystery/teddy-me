@@ -6,7 +6,7 @@
 //   plate  a loose disc that rests on the switch plunger. Press it anywhere:
 //          in the middle it pushes straight down, at an edge it tips, catches
 //          under the ring on the far side and levers the plunger down
-//   ring   slips over the base and keeps the plate in. Glue it on
+//   ring   pushes over the base and clicks on, which keeps the plate in
 //
 //   openscad -D 'part="base"' -o paw-pad-base.stl paw-pad.scad
 //   (or just run ./build.sh)
@@ -38,7 +38,7 @@ flange_over = 1.2;// plate flange beyond the plate
 flange_t  = 1.2;
 bore_clear= 0.3;  // plate flange to base wall, per side
 top_clear = 0.4;  // plate to ring opening, per side
-ring_clear= 0.15; // ring to base wall, per side (glued)
+ring_clear= 0.15; // ring to base wall, per side
 wall      = 1.2;  // base wall
 ring_wall = 1.2;
 lip_t     = 1.2;  // ring lip that holds the plate in
@@ -51,6 +51,12 @@ rib_t     = 1.2;
 sw_clear  = 0.15; // switch body to ribs, per side
 slot      = [3.4, 1.8];  // wire exit in the wall: width, height (two 1.4 mm wires)
 gate      = 1.7;  // gap between the two posts that pinch the wires
+
+/* [Push fit] */
+snap      = true; // the ring clicks over bumps on the base. false = plain ring to glue on
+snap_h    = 0.4;  // how far each bump stands out of the base wall. Too loose: 0.5. Too tight: 0.3
+snap_n    = 3;    // number of bumps
+snap_arc  = 26;   // length of each bump round the wall, degrees
 
 /* [Sewing tabs] */
 tabs      = 4;    // number of tabs with a hole for a stitch (0 = none)
@@ -72,8 +78,18 @@ half   = sw_side/2 + sw_clear;
 // The wires normally leave past the switch legs, at +x. On a small pod the
 // two posts would land on the legs there, so the exit moves round a quarter
 // turn to a side of the switch that has no legs.
-exit_a = (r_in - 3.2 - 1.3 < sw_side/2 + 3 + 0.5) ? 90 : 0;
+// On the smallest pods (plates under about 13 mm) there is no room for the
+// posts or for a wire to pass round the switch. Both wires are soldered to the
+// two legs on ONE side, trimmed to 2 mm, and leave straight out through one
+// wide slot in front of them.
+tiny   = r_in < half + rib_t + 1.3 + 0.6 + 1.3 + 0.6;
+exit_a = tiny ? 0 : (r_in - 3.2 - 1.3 < sw_side/2 + 3 + 0.5) ? 90 : 0;
 post_r = exit_a == 0 ? r_in - 3.2 : max(r_in - 3.2, half + rib_t + 1.3 + 0.6);
+leg_len = tiny ? 2.0 : 3.0;                    // switch legs, bent out flat
+open_clear = tiny ? 0.75 : top_clear;          // tiny: the plate tips further, so the ring opening is wider
+slot_w  = tiny ? 2*2.25 + 1.9 : slot[0];       // tiny: one wire in front of each leg
+// push fit: bumps on the base wall, a groove inside the ring
+snap_z  = wall_top - skirt + 1.7;              // underside of the bumps
 e      = 0.01;
 assert(sw_h - rib_h >= sw_travel + 1.2 + 0.5, "ribs too tall for this switch");
 if (part != "none")
@@ -87,7 +103,7 @@ module base() {
         translate([0, 0, -floor_t]) cylinder(r = r_base, h = floor_t + wall_top);
         cylinder(r = r_in, h = wall_top + 1);
         // wire exit, at +x (at +y on a small pod)
-        rotate(exit_a) translate([r_in - 1, -slot[0]/2, 0]) cube([wall + 2, slot[0], slot[1]]);
+        rotate(exit_a) translate([r_in - 1, -slot_w/2, 0]) cube([wall + 2, slot_w, slot[1]]);
     }
     // switch pocket: the legs leave on the +x and -x sides, two per side
     for (s = [-1, 1]) {
@@ -95,8 +111,14 @@ module base() {
         translate([s*(half + rib_t/2) - rib_t/2, -1.2, -e]) cube([rib_t, 2.4, rib_h + e]);
     }
     // two posts that pinch the wires before they leave
-    rotate(exit_a) for (s = [-1, 1])
+    if (!tiny) rotate(exit_a) for (s = [-1, 1])
         translate([post_r, s*(gate/2 + 1.3), -e]) cylinder(d = 2.6, h = rib_h + e, $fn = 24);
+    // push fit: bumps with a flat underside that the ring's groove catches on,
+    // and a sloping top that the ring rides over on the way down
+    if (snap) for (i = [0 : snap_n - 1]) rotate(360*(i + 0.5)/snap_n + 30 - snap_arc/2)
+        rotate_extrude(angle = snap_arc, $fn = 180)
+            polygon([[r_base - 0.3, snap_z], [r_base + snap_h, snap_z], [r_base + snap_h, snap_z + 0.2],
+                     [r_base - 0.3, snap_z + 0.5 + snap_h]]);
     // sewing tabs, between the wire exit and the next one round
     if (tabs > 0) for (i = [0 : tabs - 1]) rotate(360*(i + 0.5)/tabs) difference() {
         hull() {
@@ -126,7 +148,16 @@ module ring() {
             translate([0, 0, wall_top + lip_t - ch]) cylinder(r1 = r_ring, r2 = r_ring - ch, h = ch);
         }
         translate([0, 0, wall_top - skirt - 1]) cylinder(r = r_base + ring_clear, h = skirt + 1);
-        translate([0, 0, wall_top - 1]) cylinder(r = r_pad + top_clear, h = lip_t + 2);
+        if (snap) {
+            ri = r_base + ring_clear - 0.01;  ro = r_base + snap_h + 0.1;
+            // groove for the bumps, all the way round, so the ring goes on at any angle
+            rotate_extrude() polygon([[ri, snap_z - 0.15], [ro, snap_z - 0.15], [ro, snap_z + 0.35],
+                                      [ri, snap_z + 0.35 + (ro - ri)]]);
+            // lead-in on the ring's lower edge
+            translate([0, 0, wall_top - skirt - 0.01])
+                cylinder(r1 = r_base + ring_clear + 0.45, r2 = r_base + ring_clear, h = 0.45);
+        }
+        translate([0, 0, wall_top - 1]) cylinder(r = r_pad + open_clear, h = lip_t + 2);
     }
 }
 
@@ -135,7 +166,7 @@ module switch() {
     translate([-sw_side/2, -sw_side/2, 0]) cube([sw_side, sw_side, sw_body_h]);
     cylinder(d = sw_plunger_d, h = sw_h, $fn = 32);
     for (sx = [-1, 1], sy = [-1, 1])
-        translate([sx > 0 ? sw_side/2 - e : -sw_side/2 - 3, sy*2.25 - 0.35, 0]) cube([3 + e, 0.7, 0.3]);
+        translate([sx > 0 ? sw_side/2 - e : -sw_side/2 - leg_len, sy*2.25 - 0.35, 0]) cube([leg_len + e, 0.7, 0.3]);
 }
 
 // the plate tipped by a press on its +x edge: first it tips about the plunger
