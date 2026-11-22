@@ -1,7 +1,7 @@
 #!/bin/sh
 # Regenerate the paw squeeze pad STLs and renders from paw-pad.scad.
 #
-#   ./build.sh            STLs for 25, 30 and 40 mm plates (needs only OpenSCAD)
+#   ./build.sh            STLs for 15, 25, 30 and 40 mm plates (needs only OpenSCAD)
 #   ./build.sh all        STLs + mesh check + fit check + PNG renders
 #                         (needs the Python packages in ../enclosure/tools/requirements.txt)
 #   SIZES="35" ./build.sh                  another plate diameter, in mm
@@ -22,7 +22,7 @@ scad() {  # out, then -D overrides
         | grep -E "WARNING|ERROR" || true
 }
 
-for d in ${SIZES:-25 30 40}; do
+for d in ${SIZES:-15 25 30 40}; do
     dir="stl/${d}mm"; mkdir -p "$dir" "build/$d"
     for p in base plate ring; do
         scad "$dir/paw-pad-$p.stl" -D "pad_d=$d" -D "part=\"$p\""
@@ -37,7 +37,7 @@ done
 [ "${1:-}" = "all" ] || exit 0
 
 "$PY" ../enclosure/tools/check_mesh.py stl/*/paw-pad-*.stl | tee build/mesh-check.txt
-"$PY" check_fit.py ${SIZES:-25 30 40} | tee build/fit-check.txt
+"$PY" check_fit.py ${SIZES:-15 25 30 40} | tee build/fit-check.txt
 
 mkdir -p renders
 img() {  # out, camera, then -D overrides
@@ -49,3 +49,5 @@ img() {  # out, camera, then -D overrides
 img paw-pad-assembled.png 0,0,3,58,0,30,150 -D 'part="assembly"'
 img paw-pad-cutaway.png   0,0,3,72,0,0,120  -D 'part="assembly"' -D cut=true
 img paw-pad-base.png      0,0,2,45,0,30,150 -D 'part="base"'
+img paw-pad-15mm.png      0,0,3,58,0,30,110 -D 'part="assembly"' -D pad_d=15
+img paw-pad-15mm-base.png 0,0,2,40,0,30,110 -D 'part="base"' -D pad_d=15

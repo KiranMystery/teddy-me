@@ -69,6 +69,11 @@ wall_top = sw_h + flange_t + lift;     // top of the base wall = underside of th
 plate_t  = flange_t + lift + lip_t + proud;
 skirt  = min(skirt_max, wall_top - slot[1] - 0.4);   // never covers the wire exit
 half   = sw_side/2 + sw_clear;
+// The wires normally leave past the switch legs, at +x. On a small pod the
+// two posts would land on the legs there, so the exit moves round a quarter
+// turn to a side of the switch that has no legs.
+exit_a = (r_in - 3.2 - 1.3 < sw_side/2 + 3 + 0.5) ? 90 : 0;
+post_r = exit_a == 0 ? r_in - 3.2 : max(r_in - 3.2, half + rib_t + 1.3 + 0.6);
 e      = 0.01;
 assert(sw_h - rib_h >= sw_travel + 1.2 + 0.5, "ribs too tall for this switch");
 if (part != "none")
@@ -81,8 +86,8 @@ module base() {
     difference() {
         translate([0, 0, -floor_t]) cylinder(r = r_base, h = floor_t + wall_top);
         cylinder(r = r_in, h = wall_top + 1);
-        // wire exit, at +x
-        translate([r_in - 1, -slot[0]/2, 0]) cube([wall + 2, slot[0], slot[1]]);
+        // wire exit, at +x (at +y on a small pod)
+        rotate(exit_a) translate([r_in - 1, -slot[0]/2, 0]) cube([wall + 2, slot[0], slot[1]]);
     }
     // switch pocket: the legs leave on the +x and -x sides, two per side
     for (s = [-1, 1]) {
@@ -90,7 +95,8 @@ module base() {
         translate([s*(half + rib_t/2) - rib_t/2, -1.2, -e]) cube([rib_t, 2.4, rib_h + e]);
     }
     // two posts that pinch the wires before they leave
-    for (s = [-1, 1]) translate([r_in - 3.2, s*(gate/2 + 1.3), -e]) cylinder(d = 2.6, h = rib_h + e, $fn = 24);
+    rotate(exit_a) for (s = [-1, 1])
+        translate([post_r, s*(gate/2 + 1.3), -e]) cylinder(d = 2.6, h = rib_h + e, $fn = 24);
     // sewing tabs, between the wire exit and the next one round
     if (tabs > 0) for (i = [0 : tabs - 1]) rotate(360*(i + 0.5)/tabs) difference() {
         hull() {
