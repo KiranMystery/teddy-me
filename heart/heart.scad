@@ -17,14 +17,16 @@ cut  = false;         // "assembly": slice it open through the LED
 heart_w  = 40;        // width of the domed heart. The rim adds to this
 
 /* [Dome] */
-dome_h   = 7.0;       // height of the dome above the rim
+dome_h   = undef;     // height of the dome above the rim. undef = 7 mm, or a
+                      // quarter of the width on hearts under 28 mm
 dome_run = 1.0;       // how far in from the edge the dome keeps rising, as a
                       // share of the distance from the edge to the LED (0.5 = a
                       // steep edge and a wide flat top, 1.0 = rounded all the way)
 layer    = 0.2;       // the dome is built in steps this tall: print at 0.2 or 0.1
 
 /* [Rim] */
-flange_w = 5.5;       // width of the sewing rim
+flange_w = undef;     // width of the sewing rim. undef = 5.5 mm, less on
+                      // hearts under 27 mm (4.5 mm on a 20 mm heart)
 flange_t = 1.2;       // its thickness
 edge_soft= 0.4;       // chamfer on the rim's top outside edge
 stitch_d = 1.6;       // stitch holes
@@ -40,6 +42,9 @@ led_y        = undef; // LED position above (+) / below (-) the middle of the he
 
 // =====================================================================
 $fn = 48;
+dome = is_undef(dome_h) ? min(7.0, heart_w/4) : dome_h;
+rim  = is_undef(flange_w) ? min(5.5, 1.5 + 0.15*heart_w) : flange_w;
+cleft_fill = min(3, 0.1*heart_w);           // rounds the notch in the rim's outline
 // The heart is two round lobes and a small round tip joined by straight sides.
 lobe_r = heart_w/3.8;                       // lobe radius
 lobe_a = 0.9*lobe_r;                        // lobe centres at x = +/- lobe_a
@@ -74,7 +79,7 @@ module H(g = 0) {
 // 2D heart shrunk inwards by d (one step of the dome), corners kept round
 module Hin(d) { s = 1.0; offset(r = s) offset(r = -s - d) polygon(base); }
 module flange2d(shrink = 0)
-    offset(r = -shrink) offset(r = -3) offset(r = 3) H(flange_w);   // no sharp V at the cleft
+    offset(r = -shrink) offset(r = -cleft_fill) offset(r = cleft_fill) H(rim);   // no sharp V at the cleft
 
 // ---- where the LED goes: the point on the centre line furthest from the edge
 cands  = [for (y = [-heart_h/2 : 0.25 : heart_h/2]) [dmin([0, y]), y]];
@@ -86,7 +91,7 @@ d_run  = dome_run*(d_led - led_flange_d/2); // the dome is at full height from h
 assert(d_run > 2, "heart too small for a dome round the LED");
 
 // ---- stitch holes: evenly spaced along the middle of the rim
-st_d = flange_w/2 + 0.2;
+st_d = rim/2 + 0.2;
 function nrm(i) = let (t = base[(i + 1) % N] - base[(i + N - 1) % N])
     norm(t) < 1e-9 ? [0, 0] : [t[1], -t[0]]/norm(t);
 // offset curve, minus the part that folds over itself in the cleft
@@ -106,7 +111,7 @@ function wrap(s) = s < 0 ? s + Ltot : (s >= Ltot ? s - Ltot : s);
 holes = [for (k = [0 : n_st - 1]) at(wrap(s_tip + k*Ltot/n_st))];
 
 // ---- LED seat
-top_z    = flange_t + dome_h;               // top of the dome, where the LED comes out
+top_z    = flange_t + dome;                 // top of the dome, where the LED comes out
 recess_h = top_z + led_poke - led_len;      // depth of the flange recess in the back
 grip     = top_z - recess_h;                // length of the hole that holds the LED body
 assert(recess_h >= 1.2, "LED cannot poke out that far: lower led_poke or dome_h");
@@ -115,7 +120,7 @@ assert(grip >= 2, "too little material round the LED: raise dome_h or lower led_
 // =====================================================================
 //  THE HEART (back on the bed)
 // =====================================================================
-n_steps = round(dome_h/layer);
+n_steps = round(dome/layer);
 function inset(k) = let (u = (k + 0.5)/n_steps) d_run*(1 - sqrt(1 - u*u));   // quarter-ellipse profile
 module heart() {
     difference() {
@@ -125,8 +130,8 @@ module heart() {
             for (i = [0, 1]) translate([0, 0, flange_t - edge_soft + i*edge_soft/2])
                 linear_extrude(edge_soft/2 + 0.001) flange2d(edge_soft*(i + 1)/2);
             // dome: one slice per layer, each a little smaller than the last
-            for (k = [0 : n_steps - 1]) translate([0, 0, flange_t + k*dome_h/n_steps - 0.001])
-                linear_extrude(dome_h/n_steps + 0.001) Hin(inset(k));
+            for (k = [0 : n_steps - 1]) translate([0, 0, flange_t + k*dome/n_steps - 0.001])
+                linear_extrude(dome/n_steps + 0.001) Hin(inset(k));
         }
         for (p = holes) translate([p[0], p[1], -1]) cylinder(d = stitch_d, h = flange_t + 2, $fn = 16);
         translate([led_xy[0], led_xy[1], -1]) cylinder(d = led_d, h = top_z + 2);
@@ -148,6 +153,6 @@ if (part == "assembly") difference() {
 }
 if (part != "none")
     echo(str("HEART dome ", heart_w, " x ", heart_h, " mm, ", top_z, " mm tall; with the rim ",
-             heart_w + 2*flange_w, " x ", heart_h + 2*flange_w, " mm; ", n_st, " stitch holes about ",
+             heart_w + 2*rim, " x ", heart_h + 2*rim, " mm; ", n_st, " stitch holes about ",
              round(10*Ltot/n_st)/10, " mm apart; LED at y = ", led_xy[1], ", ",
              round(10*d_led)/10, " mm from the edge, pokes out ", led_poke, " mm"));
