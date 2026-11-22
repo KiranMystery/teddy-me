@@ -27,7 +27,7 @@ esp_label = board == "30pin" ? "ESP32 DevKit V1 (30-pin)" : "ESP32 DevKitC (38-p
 parts_all = [
  ["body",       "Box body (printed)",                 "#e7a23b", "box"],
  ["lid",        "Lid (printed)",                      "#f0b860", "box"],
- ["lid_screws", "4 x M3x10 countersunk lid screws",   "#b9bec6", "box"],
+ ["lid_screws", tuck ? "2 x M3x10 countersunk lid screws" : "4 x M3x10 countersunk lid screws", "#b9bec6", "box"],
  ["perfboard",  compact ? "Carrier perfboard, cut to 14 columns" : b14 ? "Carrier perfboard 60 x 40, 14 x 20 holes" : "Carrier perfboard 70 x 50", "#c9a66b", "carrier"],
  ["headers",    "Female headers",                     "#26262b", "carrier"],
  ["esp_pcb",    esp_label,                            "#15171c", "carrier"],

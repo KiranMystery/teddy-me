@@ -43,8 +43,8 @@ PRINT = [  # file, part, power, carrier, camera (translate xyz, rotate xyz, dist
     ("usb-print-lid.png",  "lid",  "usb",     "full", "40,33,8,52,0,28,250"),
     ("compact-print-body.png", "body", "usb", "compact", "34,26,12,52,0,28,215"),
     ("compact-print-lid.png",  "lid",  "usb", "compact", "34,26,8,52,0,28,215"),
-    ("14x20-print-body.png", "body", "usb", "14x20", "35,28,12,52,0,28,225"),
-    ("14x20-print-lid.png",  "lid",  "usb", "14x20", "35,28,8,52,0,28,225"),
+    ("14x20-print-body.png", "body", "usb", "14x20", "35,23,12,52,0,28,215"),
+    ("14x20-print-lid.png",  "lid",  "usb", "14x20", "35,23,12,52,0,28,215"),
 ]
 
 

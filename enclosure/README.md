@@ -21,7 +21,7 @@ sections below.
 | Battery | 81.4 x 70.6 x 42.5 mm | 83.7 x 70.6 x 42.5 mm |
 | USB-powered | 80.5 x 65.5 x 33.0 mm | 83.7 x 65.5 x 33.0 mm |
 | USB-powered, compact | 67.6 x 51.3 x 33.0 mm | 63.2 x 51.3 x 33.0 mm |
-| USB-powered, 14 x 20 hole board | 70.5 x 55.5 x 33.0 mm | not built |
+| USB-powered, 14 x 20 hole board | 70.5 x 45.4 x 31.5 mm | not built |
 
 ## What is in this folder
 
@@ -136,38 +136,59 @@ width by the 14-column board plus a strip each side for the lid screws.
 Set `power = "usb"` and `carrier = "14x20"` in `enclosure.scad`, or use the
 files in `stl/14x20-38pin/`. It is the USB-powered box for the common 4 x 6 cm
 perfboard with 14 x 20 holes, used uncut, and the 38-pin board only. It is
-70.5 x 55.5 x 33.0 mm: 2.9 mm longer and 4.2 mm wider than the compact box,
-and 10 mm shorter each way than the box for the 5 x 7 cm board.
+**70.5 x 45.4 x 31.5 mm**, the narrowest of all the boxes: the board fills the
+inside from wall to wall.
 
 The carrier is wired as in `carrier-14x20-38pin.svg` in the repo root. It is
 the compact layout with nothing moved: the small parts sit under the ESP32 and
 the three connectors stand in a strip beside it. Only the spare row at the USB
 end is gone, so the ESP32's 5V pin is in the last row of holes, row 20.
 
-What is different from the compact box:
+What is different from the other boxes:
 
-- **No cutting, and four screws.** The board keeps its corner holes, and
-  nothing in the layout sits over them, so all four take an M2 x 5
+- **The lid tucks in at the USB end and has two screws, not four.** The other
+  boxes have a 5 mm strip each side of the board, only to make room for lid
+  screws in the corners. This one has none. The port wall carries on up beside
+  the lid and leans over it at 45 degrees. Hook that end of the lid under the
+  lip, lower the other end, and fit the two M3 screws at the antenna end.
+- **No cutting, and four screws in the board.** The board keeps its corner
+  holes, and nothing in the layout sits over them, so all four take an M2 x 5
   self-tapping screw into a post. Three fins under the lid press on the bare
   edges as well, so the board is held even if the holes do not line up.
 - **The ESP32 does not overhang the board.** It ends 1.1 mm inside the antenna
   end. Its USB socket is 3.9 mm behind the wall, like the 5 x 7 cm version,
   and the opening lets the plug's moulded body through to reach it.
+- **The cable tie is near the USB end**, 12 mm along the wall beside the
+  ESP32, so the lid's fins swing shut past it. Inside, the tie lies over the
+  bare edge of the board.
 - **Row 1 and column 14 stay empty**, as on the compact carrier.
 - **No motor pocket**, and the same lead order: LED, paw, motor.
+
+What sets the size now:
+
+| | Inside | Made up of |
+|---|---|---|
+| Length | 65.7 mm | 60 mm board, 0.6 mm clearance, 5.1 mm at the antenna end for the two lid screws and the lead strain relief |
+| Width | 40.6 mm | 40 mm board, 0.6 mm clearance |
+| Height | 26.5 mm | 5 mm under the board for solder joints and wires, 1.6 mm board, 16 mm sockets and ESP32, 3.9 mm above it for the leads and the lid rim |
+
+Walls are 2.4 mm, the floor 2 mm and the lid 3 mm.
 
 **Measure your board before printing.** The box assumes the board is
 60.0 x 40.0 x 1.6 mm, that the first holes are 5.87 mm in from each short edge
 and 3.49 mm in from each long edge, and that the corner holes are 2.0 mm in
 from both edges. These are typical values for this board, not measurements of
 yours. They are `perf14`, `perf14_grid_x0`, `perf14_grid_y0` and
-`perf_hole_inset` at the top of `enclosure.scad`. A board up to 0.3 mm larger
-each way still drops in.
+`perf_hole_inset` at the top of `enclosure.scad`. The board has 0.3 mm of
+clearance on every side, so a board more than about 0.5 mm oversize will not
+drop in: there is no spare room at the sides any more.
 
 The checks pass (see "Checks that were run"): no part intersects another, the
-3 mm space for solder joints clears the four posts, the lid fin clears the
-MOTOR and PAW connectors by 1.15 mm, and a full-size plug clears the opening by
-0.39 mm.
+lid does not intersect the body, the 3 mm space for solder joints clears the
+four posts, the connectors clear the wall by 0.39 mm, and a full-size plug
+clears the opening by 0.39 mm. The check places the lid closed. It does not
+model the lid swinging shut; the fins and the tie were positioned by hand
+calculation so that they clear each other on the way down.
 
 ## Layout
 

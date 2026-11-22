@@ -78,9 +78,17 @@ cut_tol         = 0.4;  // carrier = "compact": clearance round the board you cu
 perf14         = [60, 40, 1.6]; // length (x), width (y), thickness
 perf14_grid_x0 = 5.87;  // first hole centre from a SHORT edge (20 holes on 60 mm)
 perf14_grid_y0 = 3.49;  // first hole centre from a LONG edge  (14 holes on 40 mm)
-hd14_gutter    = [[30, 36], [48, 54]];  // lid fins on the gutter-side edge, as
+hd14_gutter    = [[30, 36], [48, 54]];  // lid fins on the board's edge beside the ESP32, as
                                         // [x from, x to] from the board's port edge
-tie14_x        = 39.7;  // cable tie slots, from the board's port edge (between those fins)
+hd14_far       = [[44, 50]];            // lid fin on the connector-side edge, beyond MOTOR
+tie14_x        = 12;    // cable tie slots, from the board's port edge. Nearer the
+                        // port than every fin, so the lid can swing shut past the tie
+// This box has no strip either side of the board for lid screws. The port end
+// of the lid tucks under a lip on the body instead, and two screws at the
+// antenna end hold it down.
+tuck_reach     = 2.0;   // how far the lip reaches over the lid
+tuck_gap       = 0.2;   // air between the lip and the lid
+tuck_toe       = 0.3;   // the lip starts this far inside the port wall's inner face
 
 /* [ESP32 dev board]  MEASURE */
 //        overall L, PCB L, width, row-to-row, pins/side, first pin from the USB end
@@ -204,6 +212,7 @@ esp_stack    = header_h + pin_spacer_h + esp_pcb_t + esp_top_h;
 compact = carrier == "compact";
 assert(!compact || usb, "carrier = \"compact\" has no room for the charger: use power = \"usb\"");
 b14     = carrier == "14x20";            // the uncut 14 x 20 hole board
+tuck    = b14;                           // lid tucks under a lip at the port end: two lid screws
 lay14   = compact || b14;                // 14 columns: the small parts sit under the ESP32
 assert(!b14 || usb, "carrier = \"14x20\" has no room for the charger: use power = \"usb\"");
 assert(!b14 || board == "38pin", "carrier = \"14x20\" is laid out for the 38-pin board only");
@@ -220,7 +229,7 @@ function row_x(r) = px0 + gx0 + (n_rows - r)*2.54;        // x of hole row r
 
 boss_r  = lid_insert ? lid_insert_d/2 + 1.6 : lid_pilot_d/2 + 1.4;
 blk     = boss_off + boss_r;       // corner taken by a lid screw boss
-gutter  = blk;                     // strip between the gutter wall and the carrier
+gutter  = tuck ? 0 : blk;          // strip between the gutter wall and the carrier
 
 esp_x0r = esp_last_pin_x - esp_pin1; // ESP32 PCB end relative to the perfboard's
                                    // port edge (+ inside, - overhanging)
@@ -246,10 +255,13 @@ zt      = zs + pf[2];              // perfboard top
 // power = "usb": the box is only as tall as the ESP32 needs. The lid rim on
 // the port wall must also stay 0.3 mm above the USB cut-out, which a full-size
 // plug body fills.
-H_in    = usb ? max(zt + esp_stack + top_clear + rim_h,
+// tuck: there is no lid rim on the port wall, and that wall carries on up
+// beside the lid, so the cut-out may reach to 0.3 mm below the lid.
+H_in0   = usb ? max(zt + esp_stack + top_clear + rim_h,
                     zt + header_h + pin_spacer_h + esp_pcb_t + esp_usb_h
-                       + esp_cut[1]/2 + 0.3 + rim_h)
+                       + esp_cut[1]/2 + 0.3 + (tuck ? 0 : rim_h))
               : max(batt[1] + batt_h_clear, zt + esp_stack + top_clear + rim_h);
+H_in    = tuck ? ceil(2*H_in0 - 0.001)/2 : H_in0;   // tuck: rounded up to 0.5 mm (keeps the mesh clean)
 tie_z   = [zt + tie_rise[0], zt + tie_rise[1]];        // bottoms of the two tie slots
 tie_x0  = compact ? px0 + pf[0] - 14.3 : b14 ? px0 + tie14_x : tie_x;   // between the two gutter fins
 // compact carrier: where the lid fins press and the body supports sit, as x
@@ -260,13 +272,9 @@ cf_gutter = [[pf[0] - 22, pf[0] - 16], [pf[0] - 8, pf[0] - 2]];
 cf_strip  = [[gx0 + (n_rows - row25)*2.54 - 1.5, gx0 + (n_rows - row25)*2.54 + 1.5],
              [pf[0] - 2.4, pf[0] - 0.2]];
 
-// 14x20: one fin on the connector-side edge, on the bare strip beside GPIO 25,
-// between the MOTOR and PAW connectors
-f14_far   = [[gx0 + (n_rows - row25)*2.54 - 1.5, gx0 + (n_rows - row25)*2.54 + 1.5]];
-
 n_exits  = motor_in_box ? n_leads - 1 : n_leads;
 fence_len= (n_exits - 1)*exit_pitch + 3 + jog + 3.5;
-fence_y0 = div_y0 - fence_len;
+fence_y0 = (tuck ? W_in - blk : div_y0) - fence_len;   // tuck: clear of the corner screw boss
 notch_w  = wire_d + 0.3;
 notch_d  = 2*wire_d - lead_squeeze;
 function fence_notch_y(i) = fence_y0 + 3 + i*exit_pitch;
@@ -294,9 +302,10 @@ win_x0 = blk + 0.6;
 win    = [12, 9];                              // x size, z size
 win_z0 = 3;
 
-// lid screw axes
-boss_xy = [[boss_off, boss_off], [L_in - boss_off, boss_off],
-           [boss_off, W_in - boss_off], [L_in - boss_off, W_in - boss_off]];
+// lid screw axes (tuck: only the two at the antenna end)
+boss_all = [[boss_off, boss_off], [L_in - boss_off, boss_off],
+            [boss_off, W_in - boss_off], [L_in - boss_off, W_in - boss_off]];
+boss_xy = tuck ? [boss_all[1], boss_all[3]] : boss_all;
 // perfboard corner holes
 perf_hole_xy = [for (ix = [0, 1], iy = [0, 1])
     [px0 + (ix ? pf[0] - perf_hole_inset : perf_hole_inset),
@@ -311,7 +320,7 @@ assert(usb || perf_standoff_h >= chg_standoff_h + chg[2] + chg_top_h + 0.8,
 assert(usb || sw_zc + sw_recess[1]/2 + 1.2 <= zs - 0.5, "switch recess reaches the perfboard");
 assert(!usb || perf_standoff_usb >= 4, "perf_standoff_usb too low for the carrier's solder joints");
 assert(!usb || !cable_tie || tie_z[1] + tie_slot[1] + 1.5 <= H_in - rim_h, "tie slot reaches the lid rim");
-assert(motor_t + 0.4 + 1.2 <= gutter, "motor pocket does not fit in the gutter");
+assert(!motor_pocket || lay14 || motor_t + 0.4 + 1.2 <= gutter, "motor pocket does not fit in the gutter");
 assert(corner_r >= edge_r);
 if (part != "none")
     echo(str("OUTSIDE SIZE  ", L_out, " x ", W_out, " x ", H_out, " mm;  inside ",
@@ -365,7 +374,7 @@ module cavity() {
 // =====================================================================
 module lid_bosses() {
     // gutter-side corners: round columns fused into the corner
-    for (b = [boss_xy[0], boss_xy[1]]) {
+    for (b = boss_xy) if (b[1] < W_in/2) {
         sx = b[0] < L_in/2 ? -1 : 1;
         hull() {
             translate([b[0], b[1], -ov]) cylinder(r = boss_r, h = H_in + ov);
@@ -375,7 +384,7 @@ module lid_bosses() {
     }
     if (usb) {
         // far-side corners: the same round columns, mirrored
-        for (b = [boss_xy[2], boss_xy[3]]) {
+        for (b = boss_xy) if (b[1] > W_in/2) {
             sx = b[0] < L_in/2 ? -1 : 1;
             hull() {
                 translate([b[0], b[1], -ov]) cylinder(r = boss_r, h = H_in + ov);
@@ -399,17 +408,18 @@ module perf_posts() {
     p = perf_post; lip = 1.2;
     x1 = px0 + pf[0];
     // port end, gutter side
+    // (tuck: the board lies against both long walls, which locate it; no side lips)
     box(-ov, px0 + p, bay_y0 - lip, py0 + p, -ov, zs);
-    box(-ov, px0 + p, bay_y0 - lip, bay_y0, -ov, zt);
+    if (!tuck) box(-ov, px0 + p, bay_y0 - lip, bay_y0, -ov, zt);
     // port end, battery side (the divider is its fence)
     box(-ov, px0 + p, div_y0 - tol - p, div_y0 + ov, -ov, zs);
-    if (usb) {   // no divider: the far edge gets its own lips, like the gutter side
+    if (usb && !tuck) {   // no divider: the far edge gets its own lips, like the gutter side
         box(-ov, px0 + p, div_y0, div_y0 + lip, -ov, zt);
         box(x1 - p, fence_x0 + lip, div_y0, div_y0 + lip, -ov, zt);
     }
     // antenna end, gutter side
     box(x1 - p, fence_x0 + lip, bay_y0 - lip, py0 + p, -ov, zs);
-    box(x1 - p, fence_x0 + lip, bay_y0 - lip, bay_y0, -ov, zt);
+    if (!tuck) box(x1 - p, fence_x0 + lip, bay_y0 - lip, bay_y0, -ov, zt);
     box(fence_x0, fence_x0 + lip, bay_y0 - lip, py0 + p, -ov, zt);
     // antenna end, battery side (the strain-relief fence is its fence)
     box(x1 - p, fence_x0 + ov, div_y0 - tol - p, div_y0 + ov, -ov, zs);
@@ -501,10 +511,22 @@ module port_label(txt, yc, zc, size = 3.6) {
                                font = "Liberation Sans:style=Bold");
 }
 
+// tuck: everything on the port side of the sloping face where the lid meets
+// the lip. The body keeps this slice of the lid's shape; the lid loses it.
+module tuck_region(grow = 0) {
+    translate([0, W_in + wall + 1, 0]) rotate([90, 0, 0]) linear_extrude(W_in + 2*wall + 2)
+        // (the sloping face is carried on 1 mm below the lid so no cut lies in the lid's own underside)
+        polygon([[-wall - 1, H_in - 1], [tuck_toe + grow - 1, H_in - 1],
+                 [tuck_reach + grow, H_in + tuck_reach - tuck_toe],
+                 [tuck_reach + grow, H_in + lid_t + 1], [-wall - 1, H_in + lid_t + 1]]);
+}
+
 module body() {
     difference() {
         union() {
             difference() { shell(-floor_t, H_in); cavity(); }
+            // the port wall carries on up beside the lid and leans over it at 45 degrees
+            if (tuck) intersection() { shell(H_in + lid_t, H_in); tuck_region(); }
             lid_bosses();
             if (compact) compact_supports(); else perf_posts();
             if (!usb) {
@@ -580,8 +602,9 @@ module holddown_fins() {
         for (f = cf_strip)  fin(f[0], f[1], yb - 1.8, yb - 0.3, yb - 4.6, yb - 0.3);
         for (f = cf_gutter) fin(f[0], f[1], py0 + 0.3, py0 + 1.5, py0 - 2.2, py0 + 1.5);
     } else if (b14) {
-        for (f = f14_far)     fin(f[0], f[1], yb - 1.8, yb - 0.2, yb - 4.6, yb - 0.2);
-        for (f = hd14_gutter) fin(f[0], f[1], py0 + 0.2, py0 + 1.4, py0 - 2.2, py0 + 1.4);
+        // the board lies against both long walls, so the fins grow out of the lid rim
+        for (f = hd14_far)    fin(f[0], f[1], yb - 1.8, yb - 0.2, yb - 4.6, yb - 0.2);
+        for (f = hd14_gutter) fin(f[0], f[1], py0 + 0.2, py0 + 1.4, rim_gap, py0 + 2.6);
     } else {
         for (f = hd_batt_side) fin(f[0], f[1], yb - 1.8, yb - 0.2, yb - 4.6, yb - 0.2);
         fin(hd_batt_post[0], hd_batt_post[1], yb - 5.0, yb - 0.2, yb - 6.5, yb - 0.2);
@@ -593,13 +616,15 @@ module lid() {
     difference() {
         union() {
             shell(H_in + lid_t, H_in);
-            rim_bar(g, g + rim_t, blk + 0.6, (usb ? W_in - blk : div_y0) - 0.6);   // port wall
-            if (usb) rim_bar(blk + 0.6, min(L_in - blk, fence_x0) - 0.6,
+            rx0 = tuck ? tuck_reach + 1.0 : blk + 0.6;   // tuck: no screw boss at the port end
+            if (!tuck) rim_bar(g, g + rim_t, blk + 0.6, (usb ? W_in - blk : div_y0) - 0.6);   // port wall
+            if (usb) rim_bar(rx0, min(L_in - blk, fence_x0) - 0.6,
                              W_in - g - rim_t, W_in - g);                  // far wall
-            rim_bar(blk + 0.6, L_in - blk - 0.6, g, g + rim_t);             // gutter wall
+            rim_bar(rx0, L_in - blk - 0.6, g, g + rim_t);                   // gutter wall
             rim_bar(L_in - g - rim_t, L_in - g, blk + 0.6, fence_y0 - 0.6); // antenna wall
             if (holddown) holddown_fins();
         }
+        if (tuck) tuck_region(tuck_gap);
         for (b = boss_xy) {
             translate([b[0], b[1], H_in - 1]) cylinder(d = lid_clear_d, h = lid_t + 2, $fn = 32);
             cs = (lid_head_d + 0.4 - lid_clear_d)/2;   // 90 degree countersink

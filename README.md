@@ -348,7 +348,8 @@ compact version).
 If you have a 4 x 6 cm perfboard with 14 x 20 holes, use it uncut with
 `carrier-14x20-38pin.svg` (38-pin board only). The layout is the same as the
 compact one, the board is held by four M2 screws, and its box is
-70.5 x 55.5 x 33 mm (`enclosure/`, 14 x 20 hole board version).
+70.5 x 45.4 x 31.5 mm, the narrowest of them (`enclosure/`, 14 x 20 hole
+board version).
 
 ### Extra parts
 
