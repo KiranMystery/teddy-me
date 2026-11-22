@@ -2,10 +2,11 @@
 """Export every part of assembly.scad, check the fit, build the viewer.
 
     python tools/build_assembly.py [--board 38pin|30pin] [--power battery|usb]
-                                   [--carrier full|compact] [--motor-in-box]
+                                   [--carrier full|compact|14x20] [--motor-in-box]
                                    [--check-only] [--out NAME]
 
---carrier compact (the perfboard cut to 14 columns) always means --power usb.
+--carrier compact (the perfboard cut to 14 columns) and --carrier 14x20 (the
+uncut 4 x 6 cm board) always mean --power usb.
 
 Steps
   1. openscad -D dump=true            -> the parts table (name, label, colour)
@@ -126,15 +127,16 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--board", default="38pin", choices=["38pin", "30pin"])
     ap.add_argument("--power", default="battery", choices=["battery", "usb"])
-    ap.add_argument("--carrier", default="full", choices=["full", "compact"])
+    ap.add_argument("--carrier", default="full", choices=["full", "compact", "14x20"])
     ap.add_argument("--motor-in-box", action="store_true")
     ap.add_argument("--check-only", action="store_true")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
-    if args.carrier == "compact":
+    if args.carrier != "full":
         args.power = "usb"
 
     name = args.out or ("assembly-" + ("compact-" if args.carrier == "compact" else
+                                       "14x20-" if args.carrier == "14x20" else
                                        "usb-" if args.power == "usb" else "") + args.board
                         + ("-motor-in-box" if args.motor_in_box else ""))
     bdir = os.path.join(ROOT, "build", name)
@@ -220,9 +222,9 @@ def main():
         f"{', '.join(bad) or 'nothing intrudes'}")
     for b in bad:
         problems.append(f"{b} is in the space the carrier's solder joints need")
-    if args.carrier == "compact":
-        # on the cut board the joints reach the corners, so the printed supports
-        # under it must stay out of that space too
+    if args.carrier != "full":
+        # on these boards the joints come close to the supports, so the printed
+        # supports under the board must stay out of that space too
         v = vol("keepout", "body")
         say(f"   the same space against the body's own supports: {v:.4f} mm3")
         if v > 1e-3:
@@ -337,6 +339,7 @@ def main():
         three = f.read()
     title = ("Teddy box, " + ("30-pin DevKit V1" if args.board == "30pin" else "38-pin DevKitC")
              + (", USB powered, cut carrier" if args.carrier == "compact" else
+                ", USB powered, 14 x 20 hole board" if args.carrier == "14x20" else
                 ", USB powered" if args.power == "usb" else "")
              + (", motor inside" if args.motor_in_box else ""))
     html = (html.replace("/*__THREE__*/", three)

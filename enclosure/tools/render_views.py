@@ -32,6 +32,9 @@ VIEWS = [  # file, viewer page, hash
     ("compact-assembly-top.png",      "assembly-compact-38pin.html", "view=top"),
     ("compact-closed.png",            "assembly-compact-38pin.html", "view=iso&lid=solid&labels=off&zoom=1.2"),
     ("compact-30pin-top.png",         "assembly-compact-30pin.html", "view=top"),
+    ("14x20-assembly-overview.png",   "assembly-14x20-38pin.html", "view=iso"),
+    ("14x20-assembly-top.png",        "assembly-14x20-38pin.html", "view=top"),
+    ("14x20-closed.png",              "assembly-14x20-38pin.html", "view=iso&lid=solid&labels=off&zoom=1.2"),
 ]
 PRINT = [  # file, part, power, carrier, camera (translate xyz, rotate xyz, distance)
     ("print-body.png",     "body", "battery", "full", "40,35,16,52,0,28,265"),
@@ -40,6 +43,8 @@ PRINT = [  # file, part, power, carrier, camera (translate xyz, rotate xyz, dist
     ("usb-print-lid.png",  "lid",  "usb",     "full", "40,33,8,52,0,28,250"),
     ("compact-print-body.png", "body", "usb", "compact", "34,26,12,52,0,28,215"),
     ("compact-print-lid.png",  "lid",  "usb", "compact", "34,26,8,52,0,28,215"),
+    ("14x20-print-body.png", "body", "usb", "14x20", "35,28,12,52,0,28,225"),
+    ("14x20-print-lid.png",  "lid",  "usb", "14x20", "35,28,8,52,0,28,225"),
 ]
 
 

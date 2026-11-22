@@ -12,13 +12,16 @@ caliper measurements. Read "Measure before printing" first.
 
 There is also a smaller **USB-powered version** with no battery, charger or
 switch, for a prototype that runs from a power bank, and a **compact version**
-of that for a perfboard you cut down yourself. See the two sections below.
+of that for a perfboard you cut down yourself. A fourth version takes an uncut
+4 x 6 cm perfboard with 14 x 20 holes (38-pin board only). See the three
+sections below.
 
 | Version | 38-pin board (Ellie) | 30-pin board (Bruno) |
 |---|---|---|
 | Battery | 81.4 x 70.6 x 42.5 mm | 83.7 x 70.6 x 42.5 mm |
 | USB-powered | 80.5 x 65.5 x 33.0 mm | 83.7 x 65.5 x 33.0 mm |
 | USB-powered, compact | 67.6 x 51.3 x 33.0 mm | 63.2 x 51.3 x 33.0 mm |
+| USB-powered, 14 x 20 hole board | 70.5 x 55.5 x 33.0 mm | not built |
 
 ## What is in this folder
 
@@ -29,6 +32,8 @@ of that for a perfboard you cut down yourself. See the two sections below.
 | `stl/38pin/`, `stl/30pin/` | Ready-to-print `teddy-box-body.stl` and `teddy-box-lid.stl` for each board |
 | `stl/usb-38pin/`, `stl/usb-30pin/` | The same two parts for the USB-powered version |
 | `stl/compact-38pin/`, `stl/compact-30pin/` | The same two parts for the compact version |
+| `stl/14x20-38pin/` | The same two parts for the 14 x 20 hole board version |
+| `assembly-14x20-38pin.html`, `.glb` | The 14 x 20 hole board version as a 3D page and model |
 | `assembly-compact-38pin.html`, `assembly-compact-30pin.html`, `.glb` | The compact version as a 3D page and model |
 | `assembly-usb-38pin.html`, `assembly-usb-30pin.html`, `.glb` | The USB-powered version as a 3D page and model |
 | `assembly-38pin.html`, `assembly-30pin.html` | The wired assembly as a 3D page: double-click, then drag to rotate. No CAD software or internet needed |
@@ -122,6 +127,47 @@ box's own supports, and the lid fins clear the MOTOR and PAW connectors by
 
 The length is now set by the ESP32 itself plus the lead strain relief, and the
 width by the 14-column board plus a strip each side for the lid screws.
+
+## 14 x 20 hole board version
+
+![14 x 20 box, open](renders/14x20-assembly-overview.png)
+![14 x 20 box, closed](renders/14x20-closed.png)
+
+Set `power = "usb"` and `carrier = "14x20"` in `enclosure.scad`, or use the
+files in `stl/14x20-38pin/`. It is the USB-powered box for the common 4 x 6 cm
+perfboard with 14 x 20 holes, used uncut, and the 38-pin board only. It is
+70.5 x 55.5 x 33.0 mm: 2.9 mm longer and 4.2 mm wider than the compact box,
+and 10 mm shorter each way than the box for the 5 x 7 cm board.
+
+The carrier is wired as in `carrier-14x20-38pin.svg` in the repo root. It is
+the compact layout with nothing moved: the small parts sit under the ESP32 and
+the three connectors stand in a strip beside it. Only the spare row at the USB
+end is gone, so the ESP32's 5V pin is in the last row of holes, row 20.
+
+What is different from the compact box:
+
+- **No cutting, and four screws.** The board keeps its corner holes, and
+  nothing in the layout sits over them, so all four take an M2 x 5
+  self-tapping screw into a post. Three fins under the lid press on the bare
+  edges as well, so the board is held even if the holes do not line up.
+- **The ESP32 does not overhang the board.** It ends 1.1 mm inside the antenna
+  end. Its USB socket is 3.9 mm behind the wall, like the 5 x 7 cm version,
+  and the opening lets the plug's moulded body through to reach it.
+- **Row 1 and column 14 stay empty**, as on the compact carrier.
+- **No motor pocket**, and the same lead order: LED, paw, motor.
+
+**Measure your board before printing.** The box assumes the board is
+60.0 x 40.0 x 1.6 mm, that the first holes are 5.87 mm in from each short edge
+and 3.49 mm in from each long edge, and that the corner holes are 2.0 mm in
+from both edges. These are typical values for this board, not measurements of
+yours. They are `perf14`, `perf14_grid_x0`, `perf14_grid_y0` and
+`perf_hole_inset` at the top of `enclosure.scad`. A board up to 0.3 mm larger
+each way still drops in.
+
+The checks pass (see "Checks that were run"): no part intersects another, the
+3 mm space for solder joints clears the four posts, the lid fin clears the
+MOTOR and PAW connectors by 1.15 mm, and a full-size plug clears the opening by
+0.39 mm.
 
 ## Layout
 

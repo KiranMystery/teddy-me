@@ -24,6 +24,9 @@ power = "battery";      // "battery": LiPo + charger board + switch inside the b
 carrier = "full";       // "full":    the 5 x 7 cm perfboard as bought (carrier-*.svg)
                         // "compact": perfboard cut to 14 columns, small parts under
                         //            the ESP32 (carrier-compact-*.svg). Needs power = "usb"
+                        // "14x20":   the 4 x 6 cm perfboard with 14 x 20 holes, uncut, with
+                        //            the same layout under the ESP32 (carrier-14x20-38pin.svg).
+                        //            Needs power = "usb" and board = "38pin"
 part  = "body";         // "body", "lid" (both in print orientation) or "none"
 motor_in_box = false;   // true: coin motor sits in the pocket inside the box,
                         //       so only two leads (LED, paw) leave the box
@@ -69,6 +72,16 @@ cut_tol         = 0.4;  // carrier = "compact": clearance round the board you cu
                         // hole pitch (1.27 mm) outside the last holes
                         // (kept small: the first solder joints are 5.8 mm in)
 
+/* [Carrier perfboard for carrier = "14x20"]  MEASURE */
+// The common 4 x 6 cm board with 14 x 20 holes, used uncut. Its corner holes
+// are taken to be perf_hole_inset in from each edge, like the 5 x 7 cm board.
+perf14         = [60, 40, 1.6]; // length (x), width (y), thickness
+perf14_grid_x0 = 5.87;  // first hole centre from a SHORT edge (20 holes on 60 mm)
+perf14_grid_y0 = 3.49;  // first hole centre from a LONG edge  (14 holes on 40 mm)
+hd14_gutter    = [[30, 36], [48, 54]];  // lid fins on the gutter-side edge, as
+                                        // [x from, x to] from the board's port edge
+tie14_x        = 39.7;  // cable tie slots, from the board's port edge (between those fins)
+
 /* [ESP32 dev board]  MEASURE */
 //        overall L, PCB L, width, row-to-row, pins/side, first pin from the USB end
 esp_38 = [54.3,     48.26, 27.94, 25.4,       19,        1.27];
@@ -81,6 +94,7 @@ esp_usb_overhang = 1.0;  // how far the USB socket sticks out past the PCB end
 // from the edge, so the 38-pin board ends ~4.5 mm inside the perfboard edge
 // and the 30-pin board overhangs it by ~2.2 mm. Both are handled below.
 // (compact: one spare row beyond the USB-end pin, pin rows in columns 3 and 13 of 14)
+// (14x20: USB-end pin in the last hole row, row 20, pin rows in columns 3 and 13 of 14)
 header_h      = 8.5;     // female header height above the perfboard
 pin_spacer_h  = 2.5;     // black plastic strip on the ESP32's own pins
 esp_pcb_t     = 1.6;     // ESP32 board thickness
@@ -189,14 +203,18 @@ esp_stack    = header_h + pin_spacer_h + esp_pcb_t + esp_top_h;
 
 compact = carrier == "compact";
 assert(!compact || usb, "carrier = \"compact\" has no room for the charger: use power = \"usb\"");
-n_rows  = compact ? esp_pins + 2 : 24;       // hole rows along the board, row n_rows at the USB end
-n_cols  = compact ? 14 : 18;                 // hole columns across it, column n_cols at the gutter side
-pf      = compact ? [n_rows*2.54, n_cols*2.54, perf[2]] : perf;   // the board actually fitted
-gx0     = compact ? 1.27 : perf_grid_x0;     // first hole from a short edge
-gy0     = compact ? 1.27 : perf_grid_y0;     // first hole from a long edge
+b14     = carrier == "14x20";            // the uncut 14 x 20 hole board
+lay14   = compact || b14;                // 14 columns: the small parts sit under the ESP32
+assert(!b14 || usb, "carrier = \"14x20\" has no room for the charger: use power = \"usb\"");
+assert(!b14 || board == "38pin", "carrier = \"14x20\" is laid out for the 38-pin board only");
+n_rows  = compact ? esp_pins + 2 : b14 ? 20 : 24;   // hole rows along the board, row n_rows at the USB end
+n_cols  = lay14 ? 14 : 18;                   // hole columns across it, column n_cols at the gutter side
+pf      = compact ? [n_rows*2.54, n_cols*2.54, perf[2]] : b14 ? perf14 : perf;   // the board actually fitted
+gx0     = compact ? 1.27 : b14 ? perf14_grid_x0 : perf_grid_x0;   // first hole from a short edge
+gy0     = compact ? 1.27 : b14 ? perf14_grid_y0 : perf_grid_y0;   // first hole from a long edge
 ptol    = compact ? cut_tol : tol;           // clearance round the board
 esp_last_pin_x = compact ? gx0 + 2.54 : gx0; // USB-end pin, from the board's port edge
-esp_center_y   = compact ? gy0 + 6*2.54 : gy0 + 5*2.54;   // ESP32 centre line, from the gutter edge
+esp_center_y   = lay14 ? gy0 + 6*2.54 : gy0 + 5*2.54;   // ESP32 centre line, from the gutter edge
 row25   = (compact ? n_rows - esp_pins : n_rows - esp_pins + 1) + (board == "30pin" ? 7 : 8);  // hole row of GPIO 25
 function row_x(r) = px0 + gx0 + (n_rows - r)*2.54;        // x of hole row r
 
@@ -233,7 +251,7 @@ H_in    = usb ? max(zt + esp_stack + top_clear + rim_h,
                        + esp_cut[1]/2 + 0.3 + rim_h)
               : max(batt[1] + batt_h_clear, zt + esp_stack + top_clear + rim_h);
 tie_z   = [zt + tie_rise[0], zt + tie_rise[1]];        // bottoms of the two tie slots
-tie_x0  = compact ? px0 + pf[0] - 14.3 : tie_x;        // compact: between the two gutter fins
+tie_x0  = compact ? px0 + pf[0] - 14.3 : b14 ? px0 + tie14_x : tie_x;   // between the two gutter fins
 // compact carrier: where the lid fins press and the body supports sit, as x
 // ranges measured from the board's port edge. Gutter side: on spare column 14.
 // Connector side: on spare row 1 and on the free holes beside GPIO 25, between
@@ -241,6 +259,10 @@ tie_x0  = compact ? px0 + pf[0] - 14.3 : tie_x;        // compact: between the t
 cf_gutter = [[pf[0] - 22, pf[0] - 16], [pf[0] - 8, pf[0] - 2]];
 cf_strip  = [[gx0 + (n_rows - row25)*2.54 - 1.5, gx0 + (n_rows - row25)*2.54 + 1.5],
              [pf[0] - 2.4, pf[0] - 0.2]];
+
+// 14x20: one fin on the connector-side edge, on the bare strip beside GPIO 25,
+// between the MOTOR and PAW connectors
+f14_far   = [[gx0 + (n_rows - row25)*2.54 - 1.5, gx0 + (n_rows - row25)*2.54 + 1.5]];
 
 n_exits  = motor_in_box ? n_leads - 1 : n_leads;
 fence_len= (n_exits - 1)*exit_pitch + 3 + jog + 3.5;
@@ -490,7 +512,7 @@ module body() {
                 chg_mount();
                 switch_block();
             }
-            if (motor_pocket && !compact) motor_pocket_walls();
+            if (motor_pocket && !lay14) motor_pocket_walls();
             strain_fence();
         }
         // --- openings in the port wall ---
@@ -557,6 +579,9 @@ module holddown_fins() {
     if (compact) {
         for (f = cf_strip)  fin(f[0], f[1], yb - 1.8, yb - 0.3, yb - 4.6, yb - 0.3);
         for (f = cf_gutter) fin(f[0], f[1], py0 + 0.3, py0 + 1.5, py0 - 2.2, py0 + 1.5);
+    } else if (b14) {
+        for (f = f14_far)     fin(f[0], f[1], yb - 1.8, yb - 0.2, yb - 4.6, yb - 0.2);
+        for (f = hd14_gutter) fin(f[0], f[1], py0 + 0.2, py0 + 1.4, py0 - 2.2, py0 + 1.4);
     } else {
         for (f = hd_batt_side) fin(f[0], f[1], yb - 1.8, yb - 0.2, yb - 4.6, yb - 0.2);
         fin(hd_batt_post[0], hd_batt_post[1], yb - 5.0, yb - 0.2, yb - 6.5, yb - 0.2);

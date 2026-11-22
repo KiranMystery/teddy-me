@@ -2,7 +2,8 @@
 # Regenerate everything in this folder from the OpenSCAD sources.
 #
 #   ./build.sh            printable STLs for both boards: battery, USB-powered,
-#                         and USB-powered with the cut carrier (needs only OpenSCAD)
+#                         and USB-powered with the cut carrier; plus the 38-pin
+#                         board on an uncut 14 x 20 hole perfboard (needs only OpenSCAD)
 #   ./build.sh all        STLs + mesh check + fit check + viewer + PNG renders
 #                         (needs the Python packages in tools/requirements.txt,
 #                          PNG renders also need Google Chrome)
@@ -21,11 +22,15 @@ PY=${PYTHON:-python3}
 # stl/38pin, stl/30pin: battery build.  stl/usb-38pin, stl/usb-30pin: no
 # battery, powered through the ESP32's own USB socket.  stl/compact-38pin,
 # stl/compact-30pin: the same, for the carrier cut to 14 columns.
-for variant in battery usb compact; do
+# stl/14x20-38pin: the same, for an uncut 4 x 6 cm board with 14 x 20 holes
+# (38-pin board only).
+for variant in battery usb compact 14x20; do
 for board in 38pin 30pin; do
+    [ "$variant" = 14x20 ] && [ "$board" = 30pin ] && continue
     power=$variant; carrier=full; dir="stl/$variant-$board"
     [ "$variant" = battery ] && dir="stl/$board"
     [ "$variant" = compact ] && { power=usb; carrier=compact; }
+    [ "$variant" = 14x20 ] && { power=usb; carrier=14x20; }
     mkdir -p "$dir"
     for p in body lid; do
         out="$dir/teddy-box-$p.stl"
@@ -54,4 +59,5 @@ mkdir -p build
 "$PY" tools/build_assembly.py --board 30pin --power usb --motor-in-box --check-only
 "$PY" tools/build_assembly.py --board 38pin --carrier compact
 "$PY" tools/build_assembly.py --board 30pin --carrier compact
+"$PY" tools/build_assembly.py --board 38pin --carrier 14x20
 "$PY" tools/render_views.py

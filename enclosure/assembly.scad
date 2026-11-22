@@ -10,6 +10,8 @@
 // carrier-38pin.svg / carrier-30pin.svg (repo root): hole (column, row),
 // columns 1..18 across the 50 mm width, rows 1..24 along the 70 mm length,
 // row 24 at the USB end. The links under the board follow that drawing too.
+// (carrier = "compact" and "14x20": 14 columns, see carrier-compact-*.svg and
+// carrier-14x20-38pin.svg.)
 
 include <enclosure.scad>
 part = "none";          // do not emit the print-orientation body/lid
@@ -26,7 +28,7 @@ parts_all = [
  ["body",       "Box body (printed)",                 "#e7a23b", "box"],
  ["lid",        "Lid (printed)",                      "#f0b860", "box"],
  ["lid_screws", "4 x M3x10 countersunk lid screws",   "#b9bec6", "box"],
- ["perfboard",  compact ? "Carrier perfboard, cut to 14 columns" : "Carrier perfboard 70 x 50", "#c9a66b", "carrier"],
+ ["perfboard",  compact ? "Carrier perfboard, cut to 14 columns" : b14 ? "Carrier perfboard 60 x 40, 14 x 20 holes" : "Carrier perfboard 70 x 50", "#c9a66b", "carrier"],
  ["headers",    "Female headers",                     "#26262b", "carrier"],
  ["esp_pcb",    esp_label,                            "#15171c", "carrier"],
  ["esp_shield", "",                                   "#c5c9cf", "carrier"],
@@ -37,12 +39,12 @@ parts_all = [
  ["r3",         "R3 15-22 ohm (motor +)",             "#d9b382", "carrier"],
  ["q1",         "Q1 NPN transistor",                  "#101014", "carrier"],
  ["d1",         "D1 1N4148 (stripe to 5 V)",          "#d8532b", "carrier"],
- ["c1",         compact ? "C1 220 uF, lying flat" : "C1 100-470 uF", "#27407e", "carrier"],
+ ["c1",         lay14 ? "C1 220 uF, lying flat" : "C1 100-470 uF", "#27407e", "carrier"],
  ["j_pwr",      "5 V IN connector",                   "#f1ede0", "carrier"],
  ["j_motor",    "MOTOR connector",                    "#f1ede0", "carrier"],
  ["j_led",      "LED connector",                      "#f1ede0", "carrier"],
  ["j_paw",      "PAW connector",                      "#f1ede0", "carrier"],
- ["screws_m2",  usb ? "3 x M2x5 self-tapping screws" : "6 x M2x5 self-tapping screws", "#b9bec6", "carrier"],
+ ["screws_m2",  b14 ? "4 x M2x5 self-tapping screws" : usb ? "3 x M2x5 self-tapping screws" : "6 x M2x5 self-tapping screws", "#b9bec6", "carrier"],
  ["chg_pcb",    "USB-C charger + 5 V boost (Adafruit 6106)", "#20304f", "power"],
  ["chg_usb",    "Charging port (USB-C)",              "#d9dce1", "power"],
  ["chg_jst",    "Battery socket + plug",              "#efe6c8", "power"],
@@ -78,7 +80,7 @@ not_compact  = ["screws_m2"];        // the cut board has no corner holes
 function has(list, x) = len([for (e = list) if (e == x) 1]) > 0;
 parts = [for (p = parts_all) if (!has(usb ? only_battery : only_usb, p[0])
                                  && !(compact && has(not_compact, p[0]))) p];
-assert(!(compact && motor_in_box), "motor_in_box is not laid out for carrier = \"compact\"");
+assert(!(lay14 && motor_in_box), "motor_in_box is not laid out for carrier = \"compact\" or \"14x20\"");
 if (dump) for (p = parts) echo(str("PART|", p[0], "|", p[1], "|", p[2], "|", p[3]));
 
 // ------------------------------------------------------------------
@@ -99,7 +101,7 @@ r_usb  = compact ? n_rows - 1 : n_rows;                  // hole row of the USB-
 pin_r0 = r_usb - esp_pins + 1;                           // hole row of the antenna-end pin
 r25 = row25; r26 = r25 + 1; r27 = r25 + 2;               // rows of GPIO 25 / 26 / 27
 rgnd = pin_r0 + 13;                                      // GND is the 14th pin
-hdr_cols = compact ? [3, 13] : [8, 18];                  // the two socket strips
+hdr_cols = lay14 ? [3, 13] : [8, 18];                    // the two socket strips
 jst_top = 10.5;                                          // top of a plugged connector
 
 module wire(pts, d = wd) {
@@ -138,7 +140,7 @@ module pin_rows(z, h, w = 2.54) for (c = hdr_cols)
 P("headers") pin_rows(zt, header_h);
 P("esp_pcb") {
     translate([esp_x0, esp_yc - esp_w/2, esp_zb]) cube([esp_pcb_len, esp_w, esp_pcb_t]);
-    pin_rows(zt + header_h, pin_spacer_h + 0.01, compact ? 2.5 : 2.54);   // the board's own pin strips
+    pin_rows(zt + header_h, pin_spacer_h + 0.01, lay14 ? 2.5 : 2.54);   // the board's own pin strips
     // WROOM module PCB, with the antenna at the far end
     translate([esp_x0 + esp_len - 25.5, esp_yc - 9, esp_zb + esp_pcb_t - 0.01]) cube([25.5, 18, 0.8]);
 }
@@ -162,8 +164,8 @@ module axial(ca, cb, r, d = 2.3, l = 6.0) {
 // Compact carrier (carrier-compact-*.svg): the small parts sit under the ESP32
 // in columns 4 to 12; g is the row of GPIO 25, rp the row of the 5V / VIN pin.
 g = r25;  rp = r_usb;
-qc = compact ? 9 : 2;  qr = compact ? g + 1 : 10 + ro;      // Q1 base leg
-if (compact) {
+qc = lay14 ? 9 : 2;  qr = lay14 ? g + 1 : 10 + ro;      // Q1 base leg
+if (lay14) {
     P("r1") axial(4, 7, g);
     P("r2") axial(4, 7, g + 1);
     P("r3") axial(9, 12, rp);
@@ -183,7 +185,7 @@ P("q1") {                                   // three legs in one column: C, B, E
 }
 c1r = 1 + ro;
 c1_lie = [6.3, 11];                         // compact: diameter and length, lying flat
-P("c1") if (compact) {                      // legs in column 4, rows rp-1 and rp, body towards column 9
+P("c1") if (lay14) {                      // legs in column 4, rows rp-1 and rp, body towards column 9
     translate([(hx(rp) + hx(rp - 1))/2, hy(4) - 1.0, zt + 0.2 + c1_lie[0]/2]) rotate([90, 0, 0])
         cylinder(d = c1_lie[0], h = c1_lie[1], $fn = 32);
     for (r = [rp - 1, rp]) hull() {
@@ -205,7 +207,7 @@ module jst_v(c, ra, rb) {
     translate([xc - 3.7, hy(c) - 3.4, zt + 0.02]) cube([7.4, 6.8, 7.0]);
     translate([xc - 3.0, hy(c) - 2.25, zt + 7.0]) cube([6.0, 4.5, jst_top - 7.0]);
 }
-if (compact) {
+if (lay14) {
     P("j_motor") jst_v(1, g - 3, g - 2);
     P("j_paw")   jst_v(1, g + 2, g + 3);
     P("j_led")   jst_v(1, g + 6, g + 7);
@@ -223,7 +225,10 @@ module m2(x, y, z, len = 5) translate([x, y, z]) {
 // Carrier: only the two gutter-side corners get a screw. In the carrier
 // drawings C1 and the 5 V IN connector sit over the two battery-side corner
 // holes; that edge is held by the fins under the lid instead.
-P("screws_m2") {
+P("screws_m2") if (b14) {
+    // 14 x 20 board: nothing sits over any corner hole, so all four get a screw
+    for (h = perf_hole_xy) m2(h[0], h[1], zt);
+} else {
     for (h = perf_hole_xy) if (h[1] < py0 + pf[1]/2) m2(h[0], h[1], zt);
     if (usb) {
         // with no 5 V IN connector, the far corner at the USB end is free too
@@ -268,7 +273,7 @@ P("sw_lever") translate([sw_x - sw_lever_len, sw_yc + sw_travel/2 - sw_lever_w/2
 //  Links under the carrier, as drawn in carrier-*.svg
 //  (bare links hug the board; insulated wires hang a little lower)
 // ------------------------------------------------------------------
-if (compact) {
+if (lay14) {
     gb = max(rgnd, g + 6);                                  // last row of the GND run in column 2
     P("w_gnd") {
         wire([hu(2, rgnd), hu(9, rgnd)]);                   // GND pin: out to column 2, in to column 9
@@ -400,11 +405,11 @@ lead_row = [17 + ro, 5 + ro, r25];
 lead_col = [[2, 1], [4, 3], [2, 1]];                  // [signal / + pin, return pin]
 // compact: both pins of a connector are in column 1, on two rows
 lead_rc  = [[g + 2, g + 3], [g - 3, g - 2], [g + 7, g + 6]];
-function lead_pin(k, s) = compact ? [hx(lead_rc[k][s]), hy(1)] : [hx(lead_row[k]), hy(lead_col[k][s])];
+function lead_pin(k, s) = lay14 ? [hx(lead_rc[k][s]), hy(1)] : [hx(lead_row[k]), hy(lead_col[k][s])];
 // Which exit each lead takes. On the compact carrier the lead that starts
 // nearest the USB end takes the exit furthest from the connectors, so no lead
 // has to cross another.
-function exit_of(k) = compact ? [1, 2, 0][k] : (motor_in_box ? (k == 2 ? 1 : 0) : k);
+function exit_of(k) = lay14 ? [1, 2, 0][k] : (motor_in_box ? (k == 2 ? 1 : 0) : k);
 function dev_y(k) = W_in/2 - 22 + 22*exit_of(k);
 // s = 0: signal wire (lower in the slot), s = 1: return wire (upper)
 function lead_path(k, s) =
@@ -462,6 +467,10 @@ P("keepout") if (compact) {
     box(xa, xb, hy(13) - 1.3, ys, zs - 3, zs - 0.01);
     box(xa, hx(g) - 1.7, ys, py0 + pf[1], zs - 3, zs - 0.01);
     box(hx(g) + 1.7, xb, ys, py0 + pf[1], zs - 3, zs - 0.01);
+} else if (b14) {
+    // 14 x 20 board: joints from row 2 to row 20 and from column 1 to column 13.
+    // The four corner posts stand in the bare margin outside that
+    box(hx(n_rows) - 1.3, hx(2) + 1.3, hy(13) - 1.3, hy(1) + 1.3, zs - 3, zs - 0.01);
 } else {
     box(px0, px0 + pf[0], hy(8) - 1.3, py0 + pf[1], zs - 3, zs - 0.01);
     box(px0, px0 + pf[0], hy(18) - 1.3, hy(17) + 1.3, zs - 3, zs - 0.01);

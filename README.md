@@ -15,6 +15,7 @@ Phone → ESP32 → buzz / light. Two flavours, same buttons:
 | `circuit-led.svg` | LED only, for getting started before the transistor arrives |
 | `circuit-battery.svg` | The in-the-bear build: LiPo, USB-C charger/boost board, on/off switch, plus the same LED, motor and paw button |
 | `carrier-38pin.svg`, `carrier-30pin.svg` | Hole-by-hole perfboard layout of the carrier board, one per ESP32 board type |
+| `carrier-14x20-38pin.svg` | The same compact layout on an uncut 4 x 6 cm perfboard with 14 x 20 holes, for the 38-pin board. No cutting; its box is `enclosure/stl/14x20-38pin/` |
 | `carrier-compact-38pin.svg`, `carrier-compact-30pin.svg` | The same circuit on a perfboard cut to 14 columns, with the small parts under the ESP32. For the USB-powered prototype and its smaller box |
 | `enclosure/` | 3D-printable box for the electronics, battery or USB-powered, with a wired 3D view. See its README |
 | `heart/` | 3D-printable stitch-on heart for the front of the bear: one red domed piece with the LED poking out of the middle. See its README |
@@ -343,6 +344,11 @@ The circuit is the same. Use a 220 µF capacitor no wider than 6.3 mm, because
 it lies on its side, and keep everything under the ESP32 below 10 mm tall. The
 box for it is 67.6 x 51.3 x 33 mm for the 38-pin board (`enclosure/`,
 compact version).
+
+If you have a 4 x 6 cm perfboard with 14 x 20 holes, use it uncut with
+`carrier-14x20-38pin.svg` (38-pin board only). The layout is the same as the
+compact one, the board is held by four M2 screws, and its box is
+70.5 x 55.5 x 33 mm (`enclosure/`, 14 x 20 hole board version).
 
 ### Extra parts
 
