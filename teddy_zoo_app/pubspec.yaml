@@ -1,0 +1,42 @@
+name: teddy_zoo_app
+description: "Teddy zoo: your plush animals, linked. Buzz them, light them, link their paws."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.14.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_blue_plus: ^2.3.15
+  flutter_svg: ^2.4.0
+  go_router: ^18.1.4
+  google_fonts: ^9.0.0
+  material_ui: ^1.1.0
+  mqtt_client: ^10.14.0
+  provider: ^6.1.5+1
+  qr_flutter: ^4.1.0
+  share_plus: ^13.3.1
+  shared_preferences: ^2.5.6
+  url_launcher: ^6.3.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/brand/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  image_path: assets/brand/icon-1024.png
+  adaptive_icon_background: "#DB9558"
+  adaptive_icon_foreground: assets/brand/icon-1024.png
+
