@@ -22,15 +22,15 @@ PY=${PYTHON:-python3}
 # stl/38pin, stl/30pin: battery build.  stl/usb-38pin, stl/usb-30pin: no
 # battery, powered through the ESP32's own USB socket.  stl/compact-38pin,
 # stl/compact-30pin: the same, for the carrier cut to 14 columns.
-# stl/14x20-38pin: the same, for an uncut 4 x 6 cm board with 14 x 20 holes
-# (38-pin board only).
+# stl/14x20: for an uncut 4 x 6 cm board with 14 x 20 holes, with a 30-pin USB-C
+# ESP32 soldered straight onto it.
 for variant in battery usb compact 14x20; do
 for board in 38pin 30pin; do
     [ "$variant" = 14x20 ] && [ "$board" = 30pin ] && continue
     power=$variant; carrier=full; dir="stl/$variant-$board"
     [ "$variant" = battery ] && dir="stl/$board"
     [ "$variant" = compact ] && { power=usb; carrier=compact; }
-    [ "$variant" = 14x20 ] && { power=usb; carrier=14x20; }
+    [ "$variant" = 14x20 ] && { power=usb; carrier=14x20; dir=stl/14x20; }
     mkdir -p "$dir"
     for p in body lid; do
         out="$dir/teddy-box-$p.stl"

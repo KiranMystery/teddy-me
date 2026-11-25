@@ -41,15 +41,15 @@ SCAD = os.path.join(ROOT, "assembly.scad")
 
 # Which parts each wire net is allowed to touch (its solder joints and plugs).
 NET_ENDS = {
-    "w_5v":   {"chg_term", "j_pwr", "perfboard"},
+    "w_5v":   {"chg_term", "j_pwr", "perfboard", "c1", "r3"},
     "w_gnd":  {"chg_pcb", "chg_parts", "chg_term", "j_pwr", "j_led", "j_paw", "switch", "battery", "chg_jst",
-               "led", "button", "perfboard"},
+               "led", "button", "perfboard", "c1", "q1"},
     "w_batt": {"battery", "chg_jst"},
     "w_en":   {"switch", "chg_pcb", "chg_parts"},
-    "w_led":  {"j_led", "led", "perfboard"},
-    "w_drv":  {"perfboard"},
-    "w_motp": {"j_motor", "motor", "perfboard"},
-    "w_mot":  {"j_motor", "motor", "perfboard"},
+    "w_led":  {"j_led", "led", "perfboard", "r1"},
+    "w_drv":  {"perfboard", "r2", "q1"},
+    "w_motp": {"j_motor", "motor", "perfboard", "d1", "r3"},
+    "w_mot":  {"j_motor", "motor", "perfboard", "d1", "q1"},
     "w_paw":  {"j_paw", "button", "perfboard"},
 }
 # Solid parts that are meant to be in contact / plugged into each other.
@@ -135,8 +135,7 @@ def main():
     if args.carrier != "full":
         args.power = "usb"
 
-    name = args.out or ("assembly-" + ("compact-" if args.carrier == "compact" else
-                                       "14x20-" if args.carrier == "14x20" else
+    name = args.out or "assembly-14x20" if args.carrier == "14x20" else args.out or ("assembly-" + ("compact-" if args.carrier == "compact" else
                                        "usb-" if args.power == "usb" else "") + args.board
                         + ("-motor-in-box" if args.motor_in_box else ""))
     bdir = os.path.join(ROOT, "build", name)
@@ -216,7 +215,9 @@ def main():
 
     # (the carrier's own corner screws are left out: they pass through the board's
     #  bare corners, outside the hole grid, into the posts)
-    hits = [(s, vol("keepout", s)) for s in solids if s != "screws_m2"]
+    # (14x20: the small parts hang under the board, inside that space, on purpose)
+    own = {"screws_m2"} | ({"r1", "r2", "r3", "q1", "d1", "c1"} if args.carrier == "14x20" else set())
+    hits = [(s, vol("keepout", s)) for s in solids if s not in own]
     bad = [f"{s} ({v:.2f} mm3)" for s, v in hits if v > 1e-3]
     say(f"   3 mm joint-and-link space under the carrier against every solid part: "
         f"{', '.join(bad) or 'nothing intrudes'}")
@@ -337,7 +338,8 @@ def main():
         html = f.read()
     with open(os.path.join(HERE, "vendor", "three-bundle.min.js")) as f:
         three = f.read()
-    title = ("Teddy box, " + ("30-pin DevKit V1" if args.board == "30pin" else "38-pin DevKitC")
+    title = ("Teddy box, " + ("30-pin USB-C board soldered to the carrier" if args.carrier == "14x20" else
+                              "30-pin DevKit V1" if args.board == "30pin" else "38-pin DevKitC")
              + (", USB powered, cut carrier" if args.carrier == "compact" else
                 ", USB powered, 14 x 20 hole board" if args.carrier == "14x20" else
                 ", USB powered" if args.power == "usb" else "")

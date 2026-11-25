@@ -23,7 +23,8 @@ dump     = false;       // echo the parts table and exit
 // ------------------------------------------------------------------
 //  Parts table: name, label for the viewer, colour, group
 // ------------------------------------------------------------------
-esp_label = board == "30pin" ? "ESP32 DevKit V1 (30-pin)" : "ESP32 DevKitC (38-pin)";
+esp_label = b14 ? "ESP32 dev board (30-pin, USB-C), soldered to the carrier"
+          : board == "30pin" ? "ESP32 DevKit V1 (30-pin)" : "ESP32 DevKitC (38-pin)";
 parts_all = [
  ["body",       "Box body (printed)",                 "#e7a23b", "box"],
  ["lid",        "Lid (printed)",                      "#f0b860", "box"],
@@ -79,7 +80,8 @@ only_usb     = ["usb_cable", "cable_tie"];
 not_compact  = ["screws_m2"];        // the cut board has no corner holes
 function has(list, x) = len([for (e = list) if (e == x) 1]) > 0;
 parts = [for (p = parts_all) if (!has(usb ? only_battery : only_usb, p[0])
-                                 && !(compact && has(not_compact, p[0]))) p];
+                                 && !(compact && has(not_compact, p[0]))
+                                 && !(b14 && p[0] == "headers")) p];      // 14x20: no socket strips
 assert(!(lay14 && motor_in_box), "motor_in_box is not laid out for carrier = \"compact\" or \"14x20\"");
 if (dump) for (p = parts) echo(str("PART|", p[0], "|", p[1], "|", p[2], "|", p[3]));
 
@@ -96,12 +98,12 @@ function hu(c, r, dz = 0.6) = [hx(r), hy(c), zs - dz];   // under the board
 
 esp_x0 = px0 + esp_x0r;                                  // USB end of the ESP32 PCB
 esp_yc = py0 + esp_center_y;
-esp_zb = zt + header_h + pin_spacer_h;                   // underside of the ESP32 PCB
-r_usb  = compact ? n_rows - 1 : n_rows;                  // hole row of the USB-end pin (5V / VIN)
+esp_zb = zt + hdr_h + pin_spacer_h;                      // underside of the ESP32 PCB
+r_usb  = n_rows - usb_spare;                             // hole row of the USB-end pin (5V / VIN)
 pin_r0 = r_usb - esp_pins + 1;                           // hole row of the antenna-end pin
 r25 = row25; r26 = r25 + 1; r27 = r25 + 2;               // rows of GPIO 25 / 26 / 27
 rgnd = pin_r0 + 13;                                      // GND is the 14th pin
-hdr_cols = lay14 ? [3, 13] : [8, 18];                    // the two socket strips
+hdr_cols = b14 ? [4, 14] : lay14 ? [3, 13] : [8, 18];                  // the two socket strips
 jst_top = 10.5;                                          // top of a plugged connector
 
 module wire(pts, d = wd) {
@@ -140,13 +142,13 @@ module pin_rows(z, h, w = 2.54) for (c = hdr_cols)
 P("headers") pin_rows(zt, header_h);
 P("esp_pcb") {
     translate([esp_x0, esp_yc - esp_w/2, esp_zb]) cube([esp_pcb_len, esp_w, esp_pcb_t]);
-    pin_rows(zt + header_h, pin_spacer_h + 0.01, lay14 ? 2.5 : 2.54);   // the board's own pin strips
+    pin_rows(zt + hdr_h, pin_spacer_h + 0.01, lay14 ? 2.5 : 2.54);   // the board's own pin strips
     // WROOM module PCB, with the antenna at the far end
     translate([esp_x0 + esp_len - 25.5, esp_yc - 9, esp_zb + esp_pcb_t - 0.01]) cube([25.5, 18, 0.8]);
 }
 P("esp_shield")
     translate([esp_x0 + esp_len - 25.5 + 0.9, esp_yc - 7.9, esp_zb + esp_pcb_t + 0.8]) cube([17.6, 15.8, 2.4]);
-usb_e = esp_usb_type == "c" ? [7.35, 8.94, 3.3] : [5.6, 7.5, 2.6];   // depth, width, height
+usb_e = usb_c ? [7.35, 8.94, 3.3] : [5.6, 7.5, 2.6];   // depth, width, height
 P("esp_usb")
     translate([esp_mouth_x, esp_yc - usb_e[1]/2, esp_zb + esp_pcb_t + esp_usb_h - usb_e[2]/2])
         cube(usb_e);
@@ -164,19 +166,26 @@ module axial(ca, cb, r, d = 2.3, l = 6.0) {
 // Compact carrier (carrier-compact-*.svg): the small parts sit under the ESP32
 // in columns 4 to 12; g is the row of GPIO 25, rp the row of the 5V / VIN pin.
 g = r25;  rp = r_usb;
-qc = lay14 ? 9 : 2;  qr = lay14 ? g + 1 : 10 + ro;      // Q1 base leg
+co = b14 ? 1 : 0;                   // 14x20: everything under the ESP32 is one column over
+// 14x20: these parts hang UNDER the board. The same models, turned over about
+// the middle of the board, and dropped a little where they rest on a link.
+module under(drop = 0) {
+    if (b14) translate([0, 0, zs + zt - drop]) mirror([0, 0, 1]) children();
+    else children();
+}
+qc = lay14 ? 9 + co : 2;  qr = lay14 ? g + 1 : 10 + ro;      // Q1 base leg
 if (lay14) {
-    P("r1") axial(4, 7, g);
-    P("r2") axial(4, 7, g + 1);
-    P("r3") axial(9, 12, rp);
-    P("d1") axial(9, 12, g - 1, 1.9, 3.9);
+    P("r1") under(1.0) axial(4 + co, 7 + co, g);
+    P("r2") under(1.0) axial(4 + co, 7 + co, g + 1);
+    P("r3") under(1.0) axial(9 + co, 12 + co, rp);
+    P("d1") under(1.0) axial(9 + co, 12 + co, g - 1, 1.9, 3.9);
 } else {
     P("r1") axial(7, 4, r25);
     P("r2") axial(7, 4, 10 + ro);
     P("r3") axial(2, 6, 3 + ro);
     P("d1") axial(3, 6, 7 + ro, 1.9, 3.9);
 }
-P("q1") {                                   // three legs in one column: C, B, E
+P("q1") under() {                           // three legs in one column: C, B, E
     translate(ht(qc, qr, 2.5)) rotate([0, 0, 90]) intersection() {
         cylinder(d = 4.6, h = 4.6, $fn = 24);
         translate([-2.3, -2.3, 0]) cube([4.6, 3.6, 4.6]);
@@ -185,12 +194,12 @@ P("q1") {                                   // three legs in one column: C, B, E
 }
 c1r = 1 + ro;
 c1_lie = [6.3, 11];                         // compact: diameter and length, lying flat
-P("c1") if (lay14) {                      // legs in column 4, rows rp-1 and rp, body towards column 9
-    translate([(hx(rp) + hx(rp - 1))/2, hy(4) - 1.0, zt + 0.2 + c1_lie[0]/2]) rotate([90, 0, 0])
+P("c1") if (lay14) under(1.0) {           // legs in column 4, rows rp-1 and rp, body towards column 9
+    translate([(hx(rp) + hx(rp - 1))/2, hy(4 + co) - 1.0, zt + 0.2 + c1_lie[0]/2]) rotate([90, 0, 0])
         cylinder(d = c1_lie[0], h = c1_lie[1], $fn = 32);
     for (r = [rp - 1, rp]) hull() {
-        translate(ht(4, r, 0.3)) sphere(d = 0.5, $fn = 8);
-        translate([hx(r), hy(4) - 1.0, zt + 0.2 + c1_lie[0]/2]) sphere(d = 0.5, $fn = 8);
+        translate(ht(4 + co, r, 0.3)) sphere(d = 0.5, $fn = 8);
+        translate([hx(r), hy(4 + co) - 1.0, zt + 0.2 + c1_lie[0]/2]) sphere(d = 0.5, $fn = 8);
     }
 } else translate([hx(c1r), (hy(1) + hy(2))/2, zt + 0.3]) cylinder(d = 8, h = 12, $fn = 32);
 
@@ -275,29 +284,32 @@ P("sw_lever") translate([sw_x - sw_lever_len, sw_yc + sw_travel/2 - sw_lever_w/2
 // ------------------------------------------------------------------
 if (lay14) {
     gb = max(rgnd, g + 6);                                  // last row of the GND run in column 2
+    hc = 3 + co;                                            // column of the ESP32's signal pins
+    // how far the three insulated wires hang below the board (14x20: below the parts)
+    wz = b14 ? [5.0, 5.6, 6.2] : [1.8, 2.3, 2.9];
     P("w_gnd") {
-        wire([hu(2, rgnd), hu(9, rgnd)]);                   // GND pin: out to column 2, in to column 9
-        wire([hu(9, g + 2), hu(9, rgnd)]);                  // Q1 emitter
-        wire([hu(4, rgnd), hu(4, rp - 1)]);                 // C1 -
+        wire([hu(2, rgnd), hu(9 + co, rgnd)]);              // GND pin: out to column 2, in under the ESP32
+        wire([hu(9 + co, g + 2), hu(9 + co, rgnd)]);        // Q1 emitter
+        wire([hu(4 + co, rgnd), hu(4 + co, rp - 1)]);       // C1 -
         wire([hu(2, g + 3), hu(2, gb)]);                    // GND run beside the connectors
         wire([hu(1, g + 3), hu(2, g + 3)]);                 // PAW
         wire([hu(1, g + 6), hu(2, g + 6)]);                 // LED -
     }
-    P("w_5v")  wire([hu(3, rp), hu(9, rp)]);                // 5V pin to C1 + and R3
+    P("w_5v")  wire([hu(hc, rp), hu(9 + co, rp)]);          // 5V pin to C1 + and R3
     P("w_led") {
-        wire([hu(3, g), hu(4, g)]);
-        wire([hu(7, g), hu(7, g, 1.8), hu(1, g + 7, 1.8), hu(1, g + 7)]);          // insulated, to LED +
+        wire([hu(hc, g), hu(4 + co, g)]);
+        wire([hu(7 + co, g), hu(7 + co, g, wz[0]), hu(1, g + 7, wz[0]), hu(1, g + 7)]);          // insulated, to LED +
     }
-    P("w_drv") { wire([hu(3, g + 1), hu(4, g + 1)]); wire([hu(7, g + 1), hu(9, g + 1)]); }
+    P("w_drv") { wire([hu(hc, g + 1), hu(4 + co, g + 1)]); wire([hu(7 + co, g + 1), hu(9 + co, g + 1)]); }
     P("w_mot") {
-        wire([hu(9, g - 1), hu(9, g)]);
-        wire([hu(9, g - 1), hu(9, g - 1, 2.9), hu(1, g - 2, 2.9), hu(1, g - 2)]);  // insulated, to MOTOR -
+        wire([hu(9 + co, g - 1), hu(9 + co, g)]);
+        wire([hu(9 + co, g - 1), hu(9 + co, g - 1, wz[2]), hu(1, g - 2, wz[2]), hu(1, g - 2)]);  // insulated, to MOTOR -
     }
     P("w_motp") {
-        wire([hu(12, g - 1), hu(12, rp)]);
-        wire([hu(12, g - 1), hu(12, g - 1, 2.3), hu(1, g - 3, 2.3), hu(1, g - 3)]); // insulated, to MOTOR +
+        wire([hu(12 + co, g - 1), hu(12 + co, rp)]);
+        wire([hu(12 + co, g - 1), hu(12 + co, g - 1, wz[1]), hu(1, g - 3, wz[1]), hu(1, g - 3)]); // insulated, to MOTOR +
     }
-    P("w_paw") wire([hu(1, g + 2), hu(3, g + 2)]);
+    P("w_paw") wire([hu(1, g + 2), hu(hc, g + 2)]);
 } else {
     P("w_gnd") {
         wire([hu(1, c1r), hu(1, 24)]);                          // GND bus down column 1
@@ -382,7 +394,7 @@ P("usb_cable") {
 }
 tie_t = 1.2;  tie_w = 3.6;                         // cable tie section
 tie_xc = tie_x0 + tie_slot[0]/2;
-tie_yi = 1.0;                                      // inside the box, in the gutter
+tie_yi = b14 ? 0.2 : 1.0;                          // inside the box, in the gutter (14x20: flat on the wall)
 tie_yo = cab_y - cable_d/2 - 0.4 - tie_t;          // outside, beyond the cable
 P("cable_tie") {
     for (z = tie_z) translate([tie_xc - tie_w/2, tie_yo, z + (tie_slot[1] - tie_t)/2])
@@ -394,8 +406,8 @@ P("cable_tie") {
 // ------------------------------------------------------------------
 //  The three leads (two wires each, stacked where the lid pinches them)
 // ------------------------------------------------------------------
-z_lo = H_in - notch_d + wire_d/2;
-z_hi = H_in - wire_d/2;
+z_lo = H_in - notch_d + lead_d/2;
+z_hi = H_in - lead_d/2;
 x_jog = fence_x0 + fence_t + (L_in - fence_x0 - fence_t)/2;
 x_out = L_in + wall;
 dev_x = x_out + 34;
@@ -438,11 +450,11 @@ P("button") translate([dev_x, dev_y(0), dev_z]) {
     translate([-1, -3, -1.75]) cube([6, 6, 3.5]);
     translate([2, 0, 1.7]) cylinder(d = 3.5, h = 1.5, $fn = 20);
 }
-P("w_paw")  wire(lead_path(0, 0), wire_d);
-P("w_led")  wire(lead_path(2, 0), wire_d);
-P("w_gnd")  { wire(lead_path(0, 1), wire_d); wire(lead_path(2, 1), wire_d); }
-P("w_motp") if (motor_in_box) wire(motor_in_path(0), wire_d); else wire(lead_path(1, 0), wire_d);
-P("w_mot")  if (motor_in_box) wire(motor_in_path(1), wire_d); else wire(lead_path(1, 1), wire_d);
+P("w_paw")  wire(lead_path(0, 0), lead_d);
+P("w_led")  wire(lead_path(2, 0), lead_d);
+P("w_gnd")  { wire(lead_path(0, 1), lead_d); wire(lead_path(2, 1), lead_d); }
+P("w_motp") if (motor_in_box) wire(motor_in_path(0), lead_d); else wire(lead_path(1, 0), lead_d);
+P("w_mot")  if (motor_in_box) wire(motor_in_path(1), lead_d); else wire(lead_path(1, 1), lead_d);
 
 // ------------------------------------------------------------------
 //  Check-only parts: a worst-case USB plug pushed fully into each socket.
@@ -452,7 +464,7 @@ P("w_mot")  if (motor_in_box) wire(motor_in_path(1), wire_d); else wire(lead_pat
 module usb_plug(mouth_x, yc, zc, body) {
     translate([mouth_x - 1.0 - 25, yc - body[0]/2, zc - body[1]/2]) cube([25, body[0], body[1]]);
 }
-P("plug_esp") usb_plug(esp_mouth_x, ue_y, ue_z, esp_usb_type == "c" ? [12.35, 6.5] : [10.6, 8.5]);
+P("plug_esp") usb_plug(esp_mouth_x, ue_y, ue_z, usb_c ? [12.35, 6.5] : [10.6, 8.5]);
 P("plug_chg") usb_plug(chg_x0 - chg_usb_overhang, up_y, up_z, [12.35, 6.5]);
 
 // Check-only: the space the carrier's own solder joints and under-board links
@@ -468,9 +480,10 @@ P("keepout") if (compact) {
     box(xa, hx(g) - 1.7, ys, py0 + pf[1], zs - 3, zs - 0.01);
     box(hx(g) + 1.7, xb, ys, py0 + pf[1], zs - 3, zs - 0.01);
 } else if (b14) {
-    // 14 x 20 board: joints from row 2 to row 20 and from column 1 to column 13.
-    // The four corner posts stand in the bare margin outside that
-    box(hx(n_rows) - 1.3, hx(2) + 1.3, hy(13) - 1.3, hy(1) + 1.3, zs - 3, zs - 0.01);
+    // 14 x 20 board: everything that hangs under it, 7.6 mm deep, from the
+    // VIN row to the EN row and right across. The four corner posts stand in
+    // the bare margin outside that
+    box(hx(r_usb) - 1.5, hx(pin_r0) + 1.5, hy(14) - 1.3, hy(1) + 1.3, zs - 7.6, zs - 0.01);
 } else {
     box(px0, px0 + pf[0], hy(8) - 1.3, py0 + pf[1], zs - 3, zs - 0.01);
     box(px0, px0 + pf[0], hy(18) - 1.3, hy(17) + 1.3, zs - 3, zs - 0.01);
