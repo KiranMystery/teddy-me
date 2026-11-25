@@ -15,7 +15,7 @@ Phone → ESP32 → buzz / light. Two flavours, same buttons:
 | `circuit-led.svg` | LED only, for getting started before the transistor arrives |
 | `circuit-battery.svg` | The in-the-bear build: LiPo, USB-C charger/boost board, on/off switch, plus the same LED, motor and paw button |
 | `carrier-38pin.svg`, `carrier-30pin.svg` | Hole-by-hole perfboard layout of the carrier board, one per ESP32 board type |
-| `carrier-14x20-38pin.svg` | The same compact layout on an uncut 4 x 6 cm perfboard with 14 x 20 holes, for the 38-pin board. No cutting; its box is `enclosure/stl/14x20-38pin/` |
+| `carrier-14x20.svg` | The circuit on an uncut 4 x 6 cm perfboard with 14 x 20 holes, for a 30-pin USB-C ESP32 soldered straight onto it, with the small parts under the board. Drawn from underneath. Its box is `enclosure/stl/14x20/` |
 | `carrier-compact-38pin.svg`, `carrier-compact-30pin.svg` | The same circuit on a perfboard cut to 14 columns, with the small parts under the ESP32. For the USB-powered prototype and its smaller box |
 | `enclosure/` | 3D-printable box for the electronics, battery or USB-powered, with a wired 3D view. See its README |
 | `heart/` | 3D-printable light-up heart for the front of the bear. It fits like a safety eye: a translucent heart and a hollow bolt screw together through the fabric, with the LED hidden inside. See its README |
@@ -345,11 +345,11 @@ it lies on its side, and keep everything under the ESP32 below 10 mm tall. The
 box for it is 67.6 x 51.3 x 33 mm for the 38-pin board (`enclosure/`,
 compact version).
 
-If you have a 4 x 6 cm perfboard with 14 x 20 holes, use it uncut with
-`carrier-14x20-38pin.svg` (38-pin board only). The layout is the same as the
-compact one, the board is held by four M2 screws, and its box is
-70.5 x 45.4 x 31.5 mm, the narrowest of them (`enclosure/`, 14 x 20 hole
-board version).
+If you have a 4 x 6 cm perfboard with 14 x 20 holes and a 30-pin USB-C
+ESP32, use `carrier-14x20.svg`. The ESP32 is soldered straight onto the board,
+with no socket strips, and the small parts go underneath. The board is held by
+four M2 screws, and its box is 70.5 x 45.4 x 28 mm, the smallest of them
+(`enclosure/`, 14 x 20 hole board version).
 
 ### Extra parts
 

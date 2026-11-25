@@ -13,15 +13,15 @@ caliper measurements. Read "Measure before printing" first.
 There is also a smaller **USB-powered version** with no battery, charger or
 switch, for a prototype that runs from a power bank, and a **compact version**
 of that for a perfboard you cut down yourself. A fourth version takes an uncut
-4 x 6 cm perfboard with 14 x 20 holes (38-pin board only). See the three
-sections below.
+4 x 6 cm perfboard with 14 x 20 holes and a 30-pin USB-C ESP32 soldered
+straight onto it. See the three sections below.
 
 | Version | 38-pin board (Ellie) | 30-pin board (Bruno) |
 |---|---|---|
 | Battery | 81.4 x 70.6 x 42.5 mm | 83.7 x 70.6 x 42.5 mm |
 | USB-powered | 80.5 x 65.5 x 33.0 mm | 83.7 x 65.5 x 33.0 mm |
 | USB-powered, compact | 67.6 x 51.3 x 33.0 mm | 63.2 x 51.3 x 33.0 mm |
-| USB-powered, 14 x 20 hole board | 70.5 x 45.4 x 31.5 mm | not built |
+| USB-powered, 14 x 20 hole board | not built | 70.5 x 45.4 x 28.0 mm (30-pin USB-C board, see its section) |
 
 ## What is in this folder
 
@@ -32,8 +32,8 @@ sections below.
 | `stl/38pin/`, `stl/30pin/` | Ready-to-print `teddy-box-body.stl` and `teddy-box-lid.stl` for each board |
 | `stl/usb-38pin/`, `stl/usb-30pin/` | The same two parts for the USB-powered version |
 | `stl/compact-38pin/`, `stl/compact-30pin/` | The same two parts for the compact version |
-| `stl/14x20-38pin/` | The same two parts for the 14 x 20 hole board version |
-| `assembly-14x20-38pin.html`, `.glb` | The 14 x 20 hole board version as a 3D page and model |
+| `stl/14x20/` | The same two parts for the 14 x 20 hole board version |
+| `assembly-14x20.html`, `.glb` | The 14 x 20 hole board version as a 3D page and model |
 | `assembly-compact-38pin.html`, `assembly-compact-30pin.html`, `.glb` | The compact version as a 3D page and model |
 | `assembly-usb-38pin.html`, `assembly-usb-30pin.html`, `.glb` | The USB-powered version as a 3D page and model |
 | `assembly-38pin.html`, `assembly-30pin.html` | The wired assembly as a 3D page: double-click, then drag to rotate. No CAD software or internet needed |
@@ -131,64 +131,77 @@ width by the 14-column board plus a strip each side for the lid screws.
 ## 14 x 20 hole board version
 
 ![14 x 20 box, open](renders/14x20-assembly-overview.png)
+![Under the board](renders/14x20-underside.png)
 ![14 x 20 box, closed](renders/14x20-closed.png)
 
 Set `power = "usb"` and `carrier = "14x20"` in `enclosure.scad`, or use the
-files in `stl/14x20-38pin/`. It is the USB-powered box for the common 4 x 6 cm
-perfboard with 14 x 20 holes, used uncut, and the 38-pin board only. It is
-**70.5 x 45.4 x 31.5 mm**, the narrowest of all the boxes: the board fills the
-inside from wall to wall.
+files in `stl/14x20/`. It is **70.5 x 45.4 x 28.0 mm**, the smallest of the
+boxes, and it is the only one built from measurements of real parts: they were
+taken from a photo of the board and ESP32 in a printed box, beside a ruler, so
+they are good to about 0.5 mm.
 
-The carrier is wired as in `carrier-14x20-38pin.svg` in the repo root. It is
-the compact layout with nothing moved: the small parts sit under the ESP32 and
-the three connectors stand in a strip beside it. Only the spare row at the USB
-end is gone, so the ESP32's 5V pin is in the last row of holes, row 20.
+It is for these parts:
+
+- **Perfboard**: 4 x 6 cm with 14 x 20 holes, uncut. Its columns are lettered
+  A to N.
+- **ESP32**: a 30-pin dev board (15 pins a side) with a USB-C socket and a
+  mounting hole in each corner. The pins nearest the USB socket are labelled
+  `VIN` and `3V3`. It is 51.8 x 28.5 mm. The `board` setting is ignored.
+- **Leads**: 22 AWG silicone wire, 1.7 mm across.
+
+The carrier is wired as in `carrier-14x20.svg` in the repo root, which is
+drawn from underneath.
 
 What is different from the other boxes:
 
-- **The lid tucks in at the USB end and has two screws, not four.** The other
-  boxes have a 5 mm strip each side of the board, only to make room for lid
-  screws in the corners. This one has none. The port wall carries on up beside
-  the lid and leans over it at 45 degrees. Hook that end of the lid under the
-  lip, lower the other end, and fit the two M3 screws at the antenna end.
-- **No cutting, and four screws in the board.** The board keeps its corner
-  holes, and nothing in the layout sits over them, so all four take an M2 x 5
-  self-tapping screw into a post. Three fins under the lid press on the bare
-  edges as well, so the board is held even if the holes do not line up.
-- **The ESP32 does not overhang the board.** It ends 1.1 mm inside the antenna
-  end. Its USB socket is 3.9 mm behind the wall, like the 5 x 7 cm version,
-  and the opening lets the plug's moulded body through to reach it.
-- **The cable tie is near the USB end**, 12 mm along the wall beside the
-  ESP32, so the lid's fins swing shut past it. Inside, the tie lies over the
-  bare edge of the board.
-- **Row 1 and column 14 stay empty**, as on the compact carrier.
-- **No motor pocket**, and the same lead order: LED, paw, motor.
+- **The ESP32 is soldered straight onto the perfboard**, with no socket
+  strips. Its pin rows are in columns A and K, and its `VIN` pin is in the 4th
+  row of holes from the USB end. That row matters: one row out and the USB
+  socket misses its opening.
+- **The small parts hang under the board.** The resistors, diode, transistor
+  and capacitor are on the underside, with the wiring. So the four corner
+  posts are 8 mm tall, and nothing under the board may hang lower than 7.5 mm.
+  The three connectors are on top, in column N beside the ESP32.
+- **The opening is for USB-C**, 13.6 x 7.8 mm. The socket's mouth is 2.4 mm
+  behind the inside of the wall, so the plug's moulded body goes through the
+  opening to reach it.
+- **The lid tucks in at the USB end and has two screws, not four.** The port
+  wall carries on up beside the lid and leans over it at 45 degrees. Hook that
+  end of the lid under the lip, lower the other end, and fit the two M3 screws
+  at the antenna end.
+- **Four M2 x 5 screws hold the board** on its posts, one in each corner hole.
+  Three fins under the lid press on its edges as well.
+- **The lead slots are 2.0 mm wide and 3.2 mm deep**, for two 22 AWG wires one
+  above the other. Change `wire14_d` for a different wire.
+- **The cable tie slots** are 12 mm from the USB end, 2.0 and 7.4 mm above the
+  board. Inside, the tie lies flat against the wall, beside the ESP32.
+- **No motor pocket.** The leads leave in the order LED, paw, motor.
 
-What sets the size now:
+What sets the size:
 
 | | Inside | Made up of |
 |---|---|---|
 | Length | 65.7 mm | 60 mm board, 0.6 mm clearance, 5.1 mm at the antenna end for the two lid screws and the lead strain relief |
 | Width | 40.6 mm | 40 mm board, 0.6 mm clearance |
-| Height | 26.5 mm | 5 mm under the board for solder joints and wires, 1.6 mm board, 16 mm sockets and ESP32, 3.9 mm above it for the leads and the lid rim |
+| Height | 23.0 mm | 8 mm under the board for the parts, 1.6 mm board, 13.4 mm above it for a plugged connector and its wires |
 
-Walls are 2.4 mm, the floor 2 mm and the lid 3 mm.
+Walls are 2.4 mm, the floor 2 mm and the lid 3 mm. The ESP32 itself is only
+7.5 mm tall on the board. The connectors, at 10.5 mm with a plug in, set the
+height above it.
 
-**Measure your board before printing.** The box assumes the board is
-60.0 x 40.0 x 1.6 mm, that the first holes are 5.87 mm in from each short edge
-and 3.49 mm in from each long edge, and that the corner holes are 2.0 mm in
-from both edges. These are typical values for this board, not measurements of
-yours. They are `perf14`, `perf14_grid_x0`, `perf14_grid_y0` and
-`perf_hole_inset` at the top of `enclosure.scad`. The board has 0.3 mm of
-clearance on every side, so a board more than about 0.5 mm oversize will not
-drop in: there is no spare room at the sides any more.
+The settings, at the top of `enclosure.scad`: `perf14` and `perf14_grid_x0` /
+`perf14_grid_y0` (the perfboard), `esp_14` and `usb14_overhang` (the ESP32),
+`usb14_spare` (the row the ESP32 sits in), `perf14_standoff` (the posts),
+`top14` (room above the board) and `wire14_d`.
 
 The checks pass (see "Checks that were run"): no part intersects another, the
-lid does not intersect the body, the 3 mm space for solder joints clears the
-four posts, the connectors clear the wall by 0.39 mm, and a full-size plug
-clears the opening by 0.39 mm. The check places the lid closed. It does not
-model the lid swinging shut; the fins and the tie were positioned by hand
-calculation so that they clear each other on the way down.
+lid does not intersect the body, the parts under the board clear the floor by
+0.4 mm and the posts by more, the connectors clear the wall by 0.39 mm, and a
+full-size USB-C plug clears the opening by 0.40 mm. The check places the lid
+closed; it does not model the lid swinging shut.
+
+`tools/make_carrier_14x20_svg.py` redraws the wiring diagram and checks its
+connections against the circuit: `python3 tools/make_carrier_14x20_svg.py ../carrier-14x20.svg`.
 
 ## Layout
 
